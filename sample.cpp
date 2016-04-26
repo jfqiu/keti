@@ -20,7 +20,7 @@ double default_normal_radius_search = 0.03; //0.03
 
 //roi space
 int roix = 15;
-int roiy = -5;
+int roiy = -2;
 int roiz = 30;
 
 //colormap
@@ -39,9 +39,9 @@ int cropCols = 480;
 int cropCols2 = 960;
 
 //update voxel
-const int gridScale = 5;
-const int gridWidth = gridScale * 200;
-const int gridHeight = gridScale * 5;
+const int gridScale = 1;
+const int gridWidth = gridScale*3000;
+const int gridHeight = gridScale*5;
 
 /*
  	            * (z)
@@ -64,12 +64,6 @@ struct hash_table
 
 int main() 
 {
-	//sba
-	std::vector< cv::Point3d > points3D;
-	std::vector< std::vector< cv::Point2d > > pointsImg;
-	std::vector< std::vector< int > > visibility;
-	std::vector< cv::Mat > cameraMatrix, distCoeffs, R, T;
-
 	//set visual odometry parameters
 	VisualOdometryStereo::parameters param; 
 	setVO(param, f, c_u, c_v, base, inlier_threshold);
@@ -88,7 +82,8 @@ int main()
 	uv_disparity.SetMinAdjustIntense(20);
 
 	//pcl
-	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
+    pcl::visualization::CloudViewer voviewer( "voviewer" );
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr vooutput (new pcl::PointCloud<pcl::PointXYZRGB>);
 
 	//fusion params
 	cv::Mat key_moving_mask, key_roi_mask, key_xyz, key_disp_sgbm, key_img_rgb;
@@ -100,6 +95,7 @@ int main()
 	size_t fusionLen = 3; double translationT = 3; double rotationT = 5; //translation 10_m  rotation 5_degree
 
 	//hash table
+	size_t pointCloudNum = 0;
 	hash_table* hash = new hash_table[gridWidth * gridWidth * gridHeight * 8];
 	memset(hash, 0, sizeof(hash_table));
 
@@ -108,9 +104,9 @@ int main()
 	struct timeval t_start, t_end;
 	long seconds, useconds;
 	double duration;
-	gettimeofday(&t_start, NULL);
+	gettimeofday(&t_start, NULL);    
 
-	int count = 300;
+	int count = 1200;  
 	for (int n = 0; n < count; ++n)
 	{
 		//variables
@@ -166,6 +162,7 @@ int main()
 				for (int32_t j=0; j<4; ++j)
 					M.val[i][j] = motion.at<double>(i,j);
 			pose = pose * Matrix_::inv(M);
+			pose.val[1][3] = 0;
 			key_pose = key_pose * Matrix_::inv(M);
 			poseChanged = Matrix_::inv(M);
 			success = true;
@@ -199,7 +196,7 @@ int main()
 		double translationx = key_pose.val[0][3];		
 		double translationy = key_pose.val[1][3];		
 		double translationz = key_pose.val[2][3];	
-		printf("size[%zu] [%f,%f,%f] [%f,%f,%f]\n", vec.size(),thetax,thetay,thetaz,translationx,translationy,translationz);
+		//printf("size[%zu] [%f,%f,%f] [%f,%f,%f]\n", vec.size(),thetax,thetay,thetaz,translationx,translationy,translationz);
 		if (abs(thetax)+abs(thetay)+abs(thetaz)>rotationT || abs(translationx)+abs(translationy)+abs(translationz)>translationT || n==0)
 		{
 			cv::Mat temp_moving_mask, temp_roi_mask, temp_xyz, temp_disp_sgbm;
@@ -390,14 +387,15 @@ int main()
 			}
 		}
 
+		std::cout << BOLDGREEN"Updating..." << n+1 << std::endl;
 		//hash update
 		for (size_t j = 0; j < cloud_anno->points.size(); j++)
 		{
 			//scalable
-			int key_x = cloud_anno->points[j].x * gridScale + gridWidth; 
-			int key_y = cloud_anno->points[j].y * gridScale + gridHeight; 
-			int key_z = cloud_anno->points[j].z * gridScale + gridWidth; 
-			if (abs(key_x)>=gridWidth*2 || abs(key_y)>=gridHeight*2 || abs(key_z)>=gridWidth*2) continue;
+			int key_x = int( cloud_anno->points[j].x * gridScale ) + 2900; 
+			int key_y = int( cloud_anno->points[j].y * gridScale ) + gridHeight; 
+			int key_z = int( cloud_anno->points[j].z * gridScale ) + 2900; 
+			if (fabs(key_x)>=gridWidth*2 || fabs(key_y)>=gridHeight*2 || fabs(key_z)>=gridWidth*2) continue;
 
 			//hash function
 			size_t key = (key_x*gridWidth*gridHeight*4) + (key_z*gridHeight*2) + (key_y);
@@ -410,6 +408,7 @@ int main()
 			}
 			else
 			{
+				pointCloudNum ++;
 				//update position
 				hash[key].pt.x = key_x;
 				hash[key].pt.y = key_y;
@@ -419,10 +418,26 @@ int main()
 			hash[key].label[cloud_anno->points[j].label] ++;
 			hash[key].status ++;
 		}
-		print_highlight("Length[%d]: ", n+1);
-	}
-			
 
+		// vo cloud
+		pcl::PointXYZRGB vopoint;
+		vopoint.x = pose.val[0][3];
+		vopoint.y = pose.val[1][3];
+		vopoint.z = pose.val[2][3];
+		vopoint.r = 255;
+		vopoint.g = 0;
+		vopoint.b = 0;
+		vooutput->push_back(vopoint);
+		voviewer.showCloud(vooutput);
+
+		std::cout << BOLDMAGENTA"pose: " << pose.val[0][3] << "," << pose.val[1][3] << "," << pose.val[2][3] << std::endl;
+		std::cout << BOLDYELLOW"Pointcloud: " << pointCloudNum << RESET"" << std::endl;
+	}
+
+	while( !voviewer.wasStopped() )
+    {
+        
+    }
 
 
 
@@ -505,9 +520,10 @@ int main()
 	point_cloud_ptr_filtered->width = (int) point_cloud_ptr_filtered->points.size();
 	point_cloud_ptr_filtered->height = 1;
 
+	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
 	pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(point_cloud_ptr_filtered);
 	viewer->addPointCloud<pcl::PointXYZRGB> (point_cloud_ptr_filtered, rgb, "reconstruction");
-	viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "reconstruction");
+	viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "reconstruction");
 
 	print_highlight("The total length: "); print_value("%d ", point_cloud_ptr_filtered->width); printf("frames\n");
 
