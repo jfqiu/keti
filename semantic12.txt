@@ -1,0 +1,12 @@
+Unknown
+Sky
+Building
+Road
+Sidewalk
+Vegetation
+Fense
+Pole
+Car
+Sign
+Pedestrian
+Cyclist
