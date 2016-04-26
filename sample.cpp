@@ -1,10 +1,16 @@
 #include "utils.h"
 
 //stereo params
-double f     = 721.5377; //focal length in pixels
-double c_u   = 609.5593;  //principal point (u-coordinate) in pixels
-double c_v   = 172.8540;  //principal point (v-coordinate) in pixels
-double base  = 0.537150588; //baseline in meters
+//double f     = 721.5377; //focal length in pixels
+//double c_u   = 609.5593;  //principal point (u-coordinate) in pixels
+//double c_v   = 172.8540;  //principal point (v-coordinate) in pixels
+//double base  = 0.537150588; //baseline in meters
+//double inlier_threshold = 6.0f; //RANSAC parameter for classifying inlier and outlier
+
+double f     = 707.0912; //focal length in pixels
+double c_u   = 601.8873;  //principal point (u-coordinate) in pixels
+double c_v   = 183.1104;  //principal point (v-coordinate) in pixels
+double base  = 0.537904488; //baseline in meters
 double inlier_threshold = 6.0f; //RANSAC parameter for classifying inlier and outlier
 
 //pcl params
@@ -21,10 +27,10 @@ int roiz = 30;
 string colorfile = "/home/inin/SegNet/caffe-segnet/examples/segnet/color.png";
 
 //data directory
-string rgb_dirL = "/media/inin/data/tracking dataset/testing/image_02/0006/"; //tt0006 tr0013 tt0011 tt0003  tr0009 173-213
-string rgb_dirR = "/media/inin/data/tracking dataset/testing/image_03/0006/";
-//string rgb_dirL = "/media/inin/data/sequences/16/image_2/";
-//string rgb_dirR = "/media/inin/data/sequences/16/image_3/";
+//string rgb_dirL = "/media/inin/data/tracking dataset/testing/image_02/0006/"; //tt0006 tr0013 tt0011 tt0003  tr0009 173-213
+//string rgb_dirR = "/media/inin/data/tracking dataset/testing/image_03/0006/";
+string rgb_dirL = "/media/inin/data/sequences/05/image_2/";
+string rgb_dirR = "/media/inin/data/sequences/05/image_3/";
 //00(segnet-bad) 05(vo-bad-xiaodao) 07(confuse-xiaodao) 12(gaosu) 13(xiaodao) 16(kuandao) 18(segnet-bad) 19(segnet-confuse) 21(gaosu)
 
 //size
@@ -34,19 +40,19 @@ int cropCols2 = 960;
 
 //update voxel
 const int gridScale = 5;
-const int gridWidth = gridScale * 100;
+const int gridWidth = gridScale * 200;
 const int gridHeight = gridScale * 5;
 
 /*
  	            * (z)
 	          *
 	        *
-              *
+          *
 	     * * * * * * (x)
 	     *
-             *
-             *
-            (y)
+         *
+         *
+         (y)
 */
 
 struct hash_table
@@ -104,7 +110,7 @@ int main()
 	double duration;
 	gettimeofday(&t_start, NULL);
 
-	int count = 30;
+	int count = 300;
 	for (int n = 0; n < count; ++n)
 	{
 		//variables
@@ -322,30 +328,6 @@ int main()
 		cv::imwrite(savepic, disp_show_sgbm);
 		sprintf(savepic, "segnet%d.jpg", n);
 		cv::imwrite(savepic, segnet);
-
-
-		cv::Mat show_in = img_rgb.clone();
-		vector<pmatch>::iterator it_in = viso.quadmatches_inlier.begin();
-		for(; it_in!=viso.quadmatches_inlier.end(); )
-		{
-			//current feature point position
-			int uc = (*it_in).u1c;
-			int vc = (*it_in).v1c;
-
-			//previous feature point position
-			int up = (*it_in).u1p;
-			int vp = (*it_in).v1p;
-
-    			short d = *(it_in).dis_c;
-
-			cv::circle(show_in, cv::Point(uc,vc), 4, cv::Scalar(0,255,0), 2, 8, 0);
-			cv::circle(show_in, cv::Point(up,vp), 4, cv::Scalar(0,0,255), 2, 8, 0);
-			cv::line(show_in, cv::Point(up,vp), cv::Point(uc,vc), cv::Scalar(0,255,0), 1, 8, 0);
-			
-			it_in++;
-		}
-		std::cout << "The number of inlier is: " << viso.p_matched_inlier.size() << std::endl;
-		cv::imshow("show_in", show_in);
 */
 		/**************** Integration ***************/
 		//pcl
@@ -441,10 +423,10 @@ int main()
 	}
 			
 
-	/****** RUN BUNDLE ADJUSTMENT ******/
-	//cvsba::Sba sba;
-	//sba.run(points3D, pointsImg, visibility, cameraMatrix, R, T, distCoeffs);
-	//std::cout << "Initial error=" << sba.getInitialReprjError() << ". Final error=" << sba.getFinalReprjError() << std::endl;
+
+
+
+
 
 
 
