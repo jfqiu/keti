@@ -79,8 +79,8 @@ int main()
 	uv_disparity.SetMinAdjustIntense(20);
 
 	//pcl
-    //pcl::visualization::CloudViewer voviewer( "voviewer" );
-    pcl::visualization::CloudViewer rgbviewer( "rgbviewer" );
+    pcl::visualization::CloudViewer voviewer( "voviewer" );
+    //pcl::visualization::CloudViewer rgbviewer( "rgbviewer" );
     //pcl::visualization::CloudViewer crfviewer( "crfviewer" );
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr vooutput (new pcl::PointCloud<pcl::PointXYZRGB>);
 
@@ -406,18 +406,22 @@ int main()
 		}
 
 		/************** 3d CRF mapInference(720ms) *************/
-		//pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-		//pclut(cloud_anno, tmpcloud);
-		//rgbviewer.showCloud(tmpcloud, "rgbviewer");
+		/*
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+		pclut(cloud_anno, tmpcloud);
+		rgbviewer.showCloud(tmpcloud, "rgbviewer");
+		while( !rgbviewer.wasStopped() ) {}
 
-		//float normal_radius_search = static_cast<float>(default_normal_radius_search);
-		//float leaf_x = default_leaf_size, leaf_y = default_leaf_size, leaf_z = default_leaf_size;
-		//CloudLT::Ptr crfCloud(new CloudLT); compute(cloud, cloud_anno, normal_radius_search, leaf_x, leaf_y, leaf_z, crfCloud);
-		//*cloud_anno = *crfCloud;
+		float normal_radius_search = static_cast<float>(default_normal_radius_search);
+		float leaf_x = default_leaf_size, leaf_y = default_leaf_size, leaf_z = default_leaf_size;
+		CloudLT::Ptr crfCloud(new CloudLT); compute(cloud, cloud_anno, normal_radius_search, leaf_x, leaf_y, leaf_z, crfCloud);
+		*cloud_anno = *crfCloud;
 
-		//pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
-		//pclut(crfCloud, tmpcloud_);
-		//rgbviewer.showCloud(tmpcloud_, "crfviewer");
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
+		pclut(crfCloud, tmpcloud_);
+		rgbviewer.showCloud(tmpcloud_, "crfviewer");
+		while( !rgbviewer.wasStopped() ) {}
+		*/
 
 		/********************* hash update  ********************/
 		for (size_t j = 0; j < cloud_anno->points.size(); j++)
@@ -451,7 +455,7 @@ int main()
 		}
 
 		// vo cloud
-		/*pcl::PointXYZRGB vopoint;
+		pcl::PointXYZRGB vopoint;
 		vopoint.x = pose.val[0][3];
 		vopoint.y = pose.val[1][3];
 		vopoint.z = pose.val[2][3];
@@ -460,21 +464,22 @@ int main()
 		vopoint.b = 0;
 		vooutput->push_back(vopoint);
 		voviewer.showCloud(vooutput);
-		*/
+		
 
 		std::cout << BOLDGREEN"Updated[" << n+1 << "]" << BOLDBLUE" (" << keyFrameT << ")" << RESET" " << std::endl;
 		//std::cout << BOLDMAGENTA"pose: " << pose.val[0][3] << "," << pose.val[1][3] << "," << pose.val[2][3] << std::endl;
 		//std::cout << BOLDYELLOW"Pointcloud: " << pointCloudNum << RESET"" << std::endl;
 	}
+	/*
 	while( !rgbviewer.wasStopped() )
     {
         
     }
-	//while( !voviewer.wasStopped() )
+	*/
+	while( !voviewer.wasStopped() )
     {
         
     }
-
 
 
 
