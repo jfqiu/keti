@@ -39,9 +39,9 @@ int cropCols = 480;
 int cropCols2 = 960;
 
 //update voxel
-const int gridScale = 4;
+const int gridScale = 2;
 const int gridWidth = gridScale*300;
-const int gridHeight = gridScale*5;
+const int gridHeight = gridScale*15;
 
 /*
  	            * (z)
@@ -428,7 +428,7 @@ int main()
 		{
 			//scalable
 			int key_x = int( cloud_anno->points[j].x * gridScale ) + 300*gridScale; 
-			int key_y = int( cloud_anno->points[j].y * gridScale ) + gridHeight; 
+			int key_y = int( cloud_anno->points[j].y * gridScale ) + 15*gridScale; 
 			int key_z = int( cloud_anno->points[j].z * gridScale ) + 20*gridScale;
 
 			if (key_x < 0 || key_y < 0 || key_z < 0 ||
@@ -581,7 +581,7 @@ int main()
 	viewer->addPointCloud<pcl::PointXYZRGB> (point_cloud_ptr_filtered, rgb, "reconstruction");
 	viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "reconstruction");
 
-	std::cout << BOLDWHITE"The total length: " << BOLDBLUE" " << point_cloud_ptr_filtered->width << BOLDWHITE"points" << RESET" " << std::endl;
+	std::cout << BOLDWHITE"The total length:" << BOLDBLUE" " << point_cloud_ptr_filtered->width << BOLDWHITE" points" << RESET" " << std::endl;
 
 	//main loop
 	while (!viewer->wasStopped())
