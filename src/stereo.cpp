@@ -251,7 +251,7 @@ void correct3DPoints(cv::Mat& xyz, ROI3D& roi_, const double& pitch1, const doub
             xyz_ptr[10*i+1] = cos_p1 * yp + sin_p1 * zp;
             xyz_ptr[10*i+2] = cos_p1 * zp - sin_p1 * yp;
 
-            if(xyz_ptr[10*i] > roi_.x_max || xyz_ptr[10*i+1] < roi_.y_max || xyz_ptr[10*i+2]>roi_.z_max) //outside the ROI
+            if(xyz_ptr[10*i] > roi_.x_max || xyz_ptr[10*i+1] > roi_.y_max || xyz_ptr[10*i+2]>roi_.z_max) //outside the ROI
             {
                 xyz_ptr[10*i+6] = 0;
             }
@@ -264,7 +264,7 @@ void correct3DPoints(cv::Mat& xyz, ROI3D& roi_, const double& pitch1, const doub
             xyz_ptr[10*i+1] = cos_p1 * yp + sin_p1 * zp;
             xyz_ptr[10*i+2] = cos_p1 * zp - sin_p1 * yp;
 
-            if(xyz_ptr[10*i] > roi_.x_max || xyz_ptr[10*i+1] < roi_.y_max || xyz_ptr[10*i+2] > roi_.z_max) //outside the ROI
+            if(xyz_ptr[10*i] > roi_.x_max || xyz_ptr[10*i+1] > roi_.y_max || xyz_ptr[10*i+2] > roi_.z_max) //outside the ROI
             {
                 xyz_ptr[10*i+6] = 0;
             }

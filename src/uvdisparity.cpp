@@ -413,7 +413,6 @@ vector<cv::Mat> UVDisparity::Pitch_Classify(cv::Mat &xyz,cv::Mat& ground_mask)
     }
   }
 
-
   std::vector<Point> pt_list2;
   //select the points to estimate line function
   for(int i = 12;i < 26;i++)
@@ -436,7 +435,8 @@ vector<cv::Mat> UVDisparity::Pitch_Classify(cv::Mat &xyz,cv::Mat& ground_mask)
 
   //fitting line function
   cv::fitLine(pt_list,line1,CV_DIST_L2,0,0.01,0.01);
-  cv::fitLine(pt_list2,line2,CV_DIST_L2,0,0.01,0.01);
+  cv::fitLine(pt_list,line2,CV_DIST_L2,0,0.01,0.01);
+  //cv::fitLine(pt_list2,line2,CV_DIST_L2,0,0.01,0.01);
 
   float a = line1[0];float b = line1[1];
   int x0 = cvRound(line1[2]);int y0 = cvRound(line1[3]);

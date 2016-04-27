@@ -105,7 +105,7 @@ void pclut(CloudLT::Ptr out, pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloudRGB)
 		point.z = out->points[i].z;
 		switch (out->points[i].label)
 		{
-			case 0: pb=128; pg=128; pr=128; break; 
+			case 0: pb=128; pg=128; pr=128; break; //sky
 			case 1: pb=0; pg=0; pr=128; break; 
 			case 2: pb=128; pg=192; pr=192; break; 
 			case 3: pb=0; pg=69; pr=255; break; 
