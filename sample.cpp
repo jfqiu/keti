@@ -55,13 +55,6 @@ const int gridHeight = gridScale*5;
          (y)
 */
 
-struct hash_table
-{
-	cv::Point3f pt;
-	int label[12];
-	int status;
-};
-
 int main() 
 {
 	// ground pose
@@ -87,8 +80,8 @@ int main()
 
 	//pcl
     //pcl::visualization::CloudViewer voviewer( "voviewer" );
-    //pcl::visualization::CloudViewer rgbviewer( "rgbviewer" );
-    pcl::visualization::CloudViewer crfviewer( "crfviewer" );
+    pcl::visualization::CloudViewer rgbviewer( "rgbviewer" );
+    //pcl::visualization::CloudViewer crfviewer( "crfviewer" );
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr vooutput (new pcl::PointCloud<pcl::PointXYZRGB>);
 
 	//fusion params
@@ -112,7 +105,7 @@ int main()
 	double duration;
 	gettimeofday(&t_start, NULL);    
 
-	int count = 100;  
+	int count = 200;  
 	for (int n = 0; n < count; ++n)
 	{
 		//variables
@@ -369,8 +362,8 @@ int main()
 			{
 				if (v>=img_rows-cropRows && v<img_rows && u>=img_cols/2-cropCols && u<img_cols/2+cropCols)
 				{
-    					short d = disparity_ptr[u];
-    					if (fabs(d)>FLT_EPSILON && roi_ptr[u]!=0 && moving_ptr[u]!=255) //remove moving objects and outside the ROI
+    				short d = disparity_ptr[u];
+    				if (fabs(d)>FLT_EPSILON && roi_ptr[u]!=0 && moving_ptr[u]!=255) //remove moving objects and outside the ROI
 					{
 						//3d points
 						px = recons_ptr[10*u] * pose.val[0][0] + recons_ptr[10*u+1] * pose.val[0][1] + recons_ptr[10*u+2] * pose.val[0][2] + pose.val[0][3];
@@ -379,13 +372,12 @@ int main()
 						pb = rgb_ptr[u*3]; 
 						pg = rgb_ptr[u*3+1]; 
 						pr = rgb_ptr[u*3+2]; 
-						if (pb>240 && pg>240 && pr>240) continue;
 						rgb = (static_cast<uint32_t>(pr) << 16 | static_cast<uint32_t>(pg) << 8 | static_cast<uint32_t>(pb));
 						pointRGB.x = -px;
 						pointRGB.y = -py;
 						pointRGB.z =  pz;
 						pointRGB.rgb = *reinterpret_cast<float*>(&rgb);
-						cloud->points.push_back(pointRGB);
+						
 
 						//semantic points
 						int i = v-(img_rows-cropRows);
@@ -399,10 +391,14 @@ int main()
 						pointRGBL.y = -py;
 						pointRGBL.z =  pz;
 						pointRGBL.rgb = *reinterpret_cast<float*>(&rgb);
+
 						if (u < img_cols/2)
 							pointRGBL.label = predictionsL[i*cropCols+j].second; 
 						else 
 							pointRGBL.label = predictionsR[i*cropCols+j].second;
+
+						if (pb == pg && pg == pr) continue;
+						cloud->points.push_back(pointRGB);
 						cloud_anno->points.push_back(pointRGBL);
 					}
 				}
@@ -410,17 +406,18 @@ int main()
 		}
 
 		/************** 3d CRF mapInference(720ms) *************/
-		float normal_radius_search = static_cast<float>(default_normal_radius_search);
-		float leaf_x = default_leaf_size, leaf_y = default_leaf_size, leaf_z = default_leaf_size;
-		
-		pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-		pclut(cloud_anno, tmpcloud);
-		crfviewer.showCloud(tmpcloud);
-		CloudLT::Ptr crfCloud(new CloudLT); compute(cloud, cloud_anno, normal_radius_search, leaf_x, leaf_y, leaf_z, crfCloud);
-		*cloud_anno = *crfCloud;
 		//pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-		//pclut(crfCloud, tmpcloud);
-		//crfviewer.showCloud(tmpcloud);
+		//pclut(cloud_anno, tmpcloud);
+		//rgbviewer.showCloud(tmpcloud, "rgbviewer");
+
+		//float normal_radius_search = static_cast<float>(default_normal_radius_search);
+		//float leaf_x = default_leaf_size, leaf_y = default_leaf_size, leaf_z = default_leaf_size;
+		//CloudLT::Ptr crfCloud(new CloudLT); compute(cloud, cloud_anno, normal_radius_search, leaf_x, leaf_y, leaf_z, crfCloud);
+		//*cloud_anno = *crfCloud;
+
+		//pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
+		//pclut(crfCloud, tmpcloud_);
+		//rgbviewer.showCloud(tmpcloud_, "crfviewer");
 
 		/********************* hash update  ********************/
 		for (size_t j = 0; j < cloud_anno->points.size(); j++)
@@ -469,7 +466,10 @@ int main()
 		//std::cout << BOLDMAGENTA"pose: " << pose.val[0][3] << "," << pose.val[1][3] << "," << pose.val[2][3] << std::endl;
 		//std::cout << BOLDYELLOW"Pointcloud: " << pointCloudNum << RESET"" << std::endl;
 	}
-
+	while( !rgbviewer.wasStopped() )
+    {
+        
+    }
 	//while( !voviewer.wasStopped() )
     {
         

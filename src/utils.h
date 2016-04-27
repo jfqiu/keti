@@ -76,6 +76,15 @@
 #define BOLD(x)	"\x1B[1m" x RST
 #define UNDL(x)	"\x1B[4m" x RST
 
+
+
+struct hash_table
+{
+	cv::Point3f pt;
+	int label[12];
+	int status;
+};
+
 struct Fusion {
 	cv::Mat depth;
 	cv::Mat mov;
