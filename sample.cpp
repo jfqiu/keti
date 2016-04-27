@@ -20,7 +20,7 @@ double default_normal_radius_search = 0.03; //0.03
 
 //roi space
 int roix = 15;
-int roiy = -2;
+int roiy = 15;
 int roiz = 30;
 
 //colormap
@@ -40,7 +40,7 @@ int cropCols2 = 960;
 
 //update voxel
 const int gridScale = 1;
-const int gridWidth = gridScale*3000;
+const int gridWidth = gridScale*500;
 const int gridHeight = gridScale*5;
 
 /*
@@ -66,7 +66,6 @@ int main()
 {
 	// ground pose
 	ParameterReader pd("../data/poses/05.txt");
-	cv::Mat gtpose;
 	//pd.getData( index, gtpose );
 
 	//set visual odometry parameters
@@ -97,7 +96,7 @@ int main()
 	std::vector<Fusion> vec;	
 	Matrix_ key_pose = Matrix_::eye(4);
 	size_t keyFrameT = 0;
-	size_t fusionLen = 3; double translationT = 3; double rotationT = 5; //translation 10_m  rotation 5_degree
+	size_t fusionLen = 3; double translationT = 3; double rotationT = 5; double RT_Threshold = 5;//translation 10_m  rotation 5_degree
 
 	//hash table
 	size_t pointCloudNum = 0;
@@ -111,7 +110,7 @@ int main()
 	double duration;
 	gettimeofday(&t_start, NULL);    
 
-	int count = 1200;  
+	int count = 100;  
 	for (int n = 0; n < count; ++n)
 	{
 		//variables
@@ -166,10 +165,19 @@ int main()
 			for (int32_t i=0; i<4; ++i)
 				for (int32_t j=0; j<4; ++j)
 					M.val[i][j] = motion.at<double>(i,j);
-			pose = pose * Matrix_::inv(M);
-			pose.val[1][3] = 0;
-			key_pose = key_pose * Matrix_::inv(M);
 			poseChanged = Matrix_::inv(M);
+			pose = pose * poseChanged;
+			key_pose = key_pose * poseChanged;
+			/*
+			//gt
+			cv::Mat gtpose;
+			Matrix_ gt_ = Matrix_::eye(4); 
+			pd.getData( n+1, gtpose );
+			for (int32_t i=0; i<4; ++i)
+				for (int32_t j=0; j<4; ++j)
+					gt_.val[i][j] = gtpose.at<double>(i,j);
+			pose = gt_;
+			*/
 			success = true;
 		}
 		delete quadmatcher;
@@ -201,8 +209,14 @@ int main()
 		double translationx = key_pose.val[0][3];		
 		double translationy = key_pose.val[1][3];		
 		double translationz = key_pose.val[2][3];	
+		double r_change = sqrt( (thetax*thetax) + (thetay*thetay) + (thetaz*thetaz) );
+		double t_change = sqrt( (translationx*translationx) + (translationy*translationy) + (translationz*translationz) );
+		float rt_change = key_pose.l2norm();
 		//printf("size[%zu] [%f,%f,%f] [%f,%f,%f]\n", vec.size(),thetax,thetay,thetaz,translationx,translationy,translationz);
-		if (abs(thetax)+abs(thetay)+abs(thetaz)>rotationT || abs(translationx)+abs(translationy)+abs(translationz)>translationT || n==0)
+		//std::cout << BOLDWHITE"[r_key, t_key, rt_key]: " << BOLDGREEN" " << r_change << " " << t_change << BOLDYELLOW" " << rt_change << RESET" " << std::endl;
+		//if (fabs(thetax)+fabs(thetay)+fabs(thetaz)>rotationT || fabs(translationx)+fabs(translationy)+fabs(translationz)>translationT)
+		//if (r_change>rotationT || t_change>translationT)
+		if (rt_change > RT_Threshold)
 		{
 			cv::Mat temp_moving_mask, temp_roi_mask, temp_xyz, temp_disp_sgbm;
 			std::vector<Prediction> temp_preL, temp_preR;
@@ -269,25 +283,26 @@ int main()
 						key_recons_ptr[10*u+1] = (key_recons_ptr[10*u+1]+y) * 0.5;
 						key_recons_ptr[10*u+2] = (key_recons_ptr[10*u+2]+z) * 0.5;
 
+						/*
 						//moving fusion
 						if (temp_moving_ptr[j] == 255) 
-							key_moving_ptr[u] = 255;
-						//use semantic cues
-						if (i>=img_rows-cropRows && i<img_rows && j>=img_cols/2-cropCols && j<img_cols/2+cropCols)
 						{
-							int label = 0;
-							int r = i - (img_rows-cropRows);
-							int c = j - (img_cols/2-cropCols);
-							if (j < img_cols/2) label = temp_preL[r*cropCols+c].second;
-							else label = temp_preR[r*cropCols+c].second;
+							key_moving_ptr[u] = 255;
+							//use semantic cues
+							if (i>=img_rows-cropRows && i<img_rows && j>=img_cols/2-cropCols && j<img_cols/2+cropCols)
+							{
+								int label = 0;
+								int r = i - (img_rows-cropRows);
+								int c = j - (img_cols/2-cropCols);
+								if (j < img_cols/2) label = temp_preL[r*cropCols+c].second;
+								else label = temp_preR[r*cropCols+c].second;
 
-							if (temp_moving_ptr[j]==255 && label<9) key_moving_ptr[u] = 0;
+								if (temp_moving_ptr[j]==255 && label<9) key_moving_ptr[u] = 0;
+							}
 						}
+						*/
 					}
 				}
-				//sba
-
-
 			}
 			// semantic cues remove moving error
 			cv::imshow("key_moving_mask", key_moving_mask);
@@ -316,9 +331,9 @@ int main()
 			Mat ele = getStructuringElement(dilate_type, Size(2*dilate_ele_size+1, 2*dilate_ele_size+1), Point(dilate_ele_size, dilate_ele_size));
 			dilate(key_moving_mask, key_moving_mask, ele);
 			cv::imshow("refine_key_moving_mask", key_moving_mask);
+
 			keyFrameT ++;
 			key_pose = Matrix_::eye(4);
-			std::cout << BOLD(FCYN("key frame: ")) << keyFrameT << " \n";
 		}
 		else continue;
 /*
@@ -392,14 +407,19 @@ int main()
 			}
 		}
 
-		std::cout << BOLDGREEN"Updating..." << n+1 << std::endl;
-		//hash update
+		/************** 3d CRF mapInference(720ms) *************/
+		float normal_radius_search = static_cast<float>(default_normal_radius_search);
+		float leaf_x = default_leaf_size, leaf_y = default_leaf_size, leaf_z = default_leaf_size;
+		CloudLT::Ptr crfCloud(new CloudLT); compute(cloud, cloud_anno, normal_radius_search, leaf_x, leaf_y, leaf_z, crfCloud);
+		*cloud_anno = *crfCloud;
+
+		/********************* hash update  ********************/
 		for (size_t j = 0; j < cloud_anno->points.size(); j++)
 		{
 			//scalable
-			int key_x = int( cloud_anno->points[j].x * gridScale ) + 2900; 
+			int key_x = int( cloud_anno->points[j].x * gridScale ) + (gridWidth-100*gridScale); 
 			int key_y = int( cloud_anno->points[j].y * gridScale ) + gridHeight; 
-			int key_z = int( cloud_anno->points[j].z * gridScale ) + 2900; 
+			int key_z = int( cloud_anno->points[j].z * gridScale ) + (gridWidth-100*gridScale); 
 			if (fabs(key_x)>=gridWidth*2 || fabs(key_y)>=gridHeight*2 || fabs(key_z)>=gridWidth*2) continue;
 
 			//hash function
@@ -435,8 +455,9 @@ int main()
 		vooutput->push_back(vopoint);
 		voviewer.showCloud(vooutput);
 
-		std::cout << BOLDMAGENTA"pose: " << pose.val[0][3] << "," << pose.val[1][3] << "," << pose.val[2][3] << std::endl;
-		std::cout << BOLDYELLOW"Pointcloud: " << pointCloudNum << RESET"" << std::endl;
+		std::cout << BOLDGREEN"Updated[" << n+1 << "]" << BOLDBLUE" (" << keyFrameT << ")" << RESET" " << std::endl;
+		//std::cout << BOLDMAGENTA"pose: " << pose.val[0][3] << "," << pose.val[1][3] << "," << pose.val[2][3] << std::endl;
+		//std::cout << BOLDYELLOW"Pointcloud: " << pointCloudNum << RESET"" << std::endl;
 	}
 
 	while( !voviewer.wasStopped() )
@@ -475,7 +496,7 @@ int main()
 	seconds  = t_end.tv_sec  - t_start.tv_sec;
 	useconds = t_end.tv_usec - t_start.tv_usec;
 	duration = seconds*1000.0 + useconds/1000.0;
-	std::cout << BOLD(FCYN("Average time: ")) << duration/count << " ms\n";
+	std::cout << BOLDMAGENTA"Average time: " << duration/count << " ms" << RESET" " << std::endl;
 
 	//display
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>);

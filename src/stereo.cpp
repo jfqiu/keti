@@ -155,7 +155,7 @@ void triangulate10D(const cv::Mat& img, const cv::Mat& disp, cv::Mat& xyz,
                 py = 1.0/0.0;
                 pz = 1.0/0.0;
             }
-
+/*
             if(px>x_max || pz>z_max || py<y_max)//outside the ROI
             {
                 dptr[j*10] = (float)px;   //X
@@ -183,8 +183,34 @@ void triangulate10D(const cv::Mat& img, const cv::Mat& disp, cv::Mat& xyz,
                 dptr[j*10 + 9] = 0;           //motion mark
 
             }
+*/
+            if(fabs(px)>x_max || fabs(pz)>z_max || fabs(py)>y_max)//outside the ROI
+            {
+                dptr[j*10] = (float)px;   //X
+                dptr[j*10 + 1] = (float)py; //Y
+                dptr[j*10 + 2] = (float)pz; //Z
+                dptr[j*10 + 3] = (float)j;  //u
+                dptr[j*10 + 4] = (float)i;  //v
+                dptr[j*10 + 5] = (float)d/16.0f; //disparity
+                dptr[j*10 + 6] = (int)intensity;        //intensity
+                dptr[j*10 + 7] = 0;        //I_u
+                dptr[j*10 + 8] = 0;        //I_v
+                dptr[j*10 + 9] = 0;        //motion mark
+            }
+            else                                //in the ROI
+            {
+                dptr[j*10] = (float)px;        //X
+                dptr[j*10 + 1] = (float)py;      //Y
+                dptr[j*10 + 2] = (float)pz;      //Z
+                dptr[j*10 + 3] = (float)j;       //u
+                dptr[j*10 + 4] = (float)i;       //v
+                dptr[j*10 + 5] = (float)d/16.0f; //disparity
+                dptr[j*10 + 6] = (int)intensity; //intensity
+                dptr[j*10 + 7] = 0;           //I_u
+                dptr[j*10 + 8] = 0;           //I_v
+                dptr[j*10 + 9] = 0;           //motion mark
 
-
+            }
 
         }
     }
