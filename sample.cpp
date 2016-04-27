@@ -31,7 +31,7 @@ string colorfile = "/home/inin/SegNet/caffe-segnet/examples/segnet/color.png";
 //string rgb_dirR = "/media/inin/data/tracking dataset/testing/image_03/0006/";
 string rgb_dirL = "/media/inin/data/sequences/05/image_2/";
 string rgb_dirR = "/media/inin/data/sequences/05/image_3/";
-//00(segnet-bad) 05(vo-bad-xiaodao) 07(confuse-xiaodao) 12(gaosu) 13(xiaodao) 16(kuandao) 18(segnet-bad) 19(segnet-confuse) 21(gaosu)
+//00(segnet-bad) 05(good-xiaodao) 07(confuse-xiaodao) 12(gaosu) 13(xiaodao) 16(kuandao) 18(segnet-bad) 19(segnet-confuse) 21(gaosu)
 
 //size
 int cropRows = 360;
@@ -39,8 +39,8 @@ int cropCols = 480;
 int cropCols2 = 960;
 
 //update voxel
-const int gridScale = 1;
-const int gridWidth = gridScale*500;
+const int gridScale = 4;
+const int gridWidth = gridScale*300;
 const int gridHeight = gridScale*5;
 
 /*
@@ -105,7 +105,7 @@ int main()
 	double duration;
 	gettimeofday(&t_start, NULL);    
 
-	int count = 200;  
+	int count = 1200;  
 	for (int n = 0; n < count; ++n)
 	{
 		//variables
@@ -163,7 +163,7 @@ int main()
 			poseChanged = Matrix_::inv(M);
 			pose = pose * poseChanged;
 			key_pose = key_pose * poseChanged;
-			/*
+			
 			//gt
 			cv::Mat gtpose;
 			Matrix_ gt_ = Matrix_::eye(4); 
@@ -172,7 +172,7 @@ int main()
 				for (int32_t j=0; j<4; ++j)
 					gt_.val[i][j] = gtpose.at<double>(i,j);
 			pose = gt_;
-			*/
+			
 			success = true;
 		}
 		delete quadmatcher;
@@ -427,10 +427,12 @@ int main()
 		for (size_t j = 0; j < cloud_anno->points.size(); j++)
 		{
 			//scalable
-			int key_x = int( cloud_anno->points[j].x * gridScale ) + (gridWidth-100*gridScale); 
+			int key_x = int( cloud_anno->points[j].x * gridScale ) + 300*gridScale; 
 			int key_y = int( cloud_anno->points[j].y * gridScale ) + gridHeight; 
-			int key_z = int( cloud_anno->points[j].z * gridScale ) + (gridWidth-100*gridScale); 
-			if (fabs(key_x)>=gridWidth*2 || fabs(key_y)>=gridHeight*2 || fabs(key_z)>=gridWidth*2) continue;
+			int key_z = int( cloud_anno->points[j].z * gridScale ) + 20*gridScale;
+
+			if (key_x < 0 || key_y < 0 || key_z < 0 ||
+					fabs(key_x)>=gridWidth*2 || fabs(key_y)>=gridHeight*2 || fabs(key_z)>=gridWidth*2) continue;
 
 			//hash function
 			size_t key = (key_x*gridWidth*gridHeight*4) + (key_z*gridHeight*2) + (key_y);
@@ -465,11 +467,11 @@ int main()
 		vooutput->push_back(vopoint);
 		voviewer.showCloud(vooutput);
 		
-
 		std::cout << BOLDGREEN"Updated[" << n+1 << "]" << BOLDBLUE" (" << keyFrameT << ")" << RESET" " << std::endl;
-		//std::cout << BOLDMAGENTA"pose: " << pose.val[0][3] << "," << pose.val[1][3] << "," << pose.val[2][3] << std::endl;
+		std::cout << BOLDMAGENTA"pose: " << pose.val[0][3] << "," << pose.val[1][3] << "," << pose.val[2][3] << std::endl;
 		//std::cout << BOLDYELLOW"Pointcloud: " << pointCloudNum << RESET"" << std::endl;
 	}
+	std::cout << BOLDYELLOW"Waiting to Reconstruction..." << RESET" " << std::endl;
 	/*
 	while( !rgbviewer.wasStopped() )
     {
@@ -480,6 +482,19 @@ int main()
     {
         
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -548,14 +563,14 @@ int main()
 	}
 
 	//outlier removal
-	printf("before outlier removal: %d\n", (int) point_cloud_ptr->points.size());
+	std::cout << BOLDMAGENTA"Before outlier removal" << point_cloud_ptr->points.size() << RESET" " << std::endl;
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud_ptr_filtered(new pcl::PointCloud<pcl::PointXYZRGB>);
 	pcl::StatisticalOutlierRemoval<pcl::PointXYZRGB> sor_;
 	sor_.setInputCloud(point_cloud_ptr);
 	sor_.setMeanK(50);
 	sor_.setStddevMulThresh(1.0);
 	sor_.filter(*point_cloud_ptr_filtered);
-	printf("after outlier removal: %d\n", (int) point_cloud_ptr_filtered->points.size());
+	std::cout << BOLDMAGENTA"After outlier removal" << point_cloud_ptr_filtered->points.size() << RESET" " << std::endl;
 
 	//create visualizer
 	point_cloud_ptr_filtered->width = (int) point_cloud_ptr_filtered->points.size();
@@ -566,7 +581,7 @@ int main()
 	viewer->addPointCloud<pcl::PointXYZRGB> (point_cloud_ptr_filtered, rgb, "reconstruction");
 	viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "reconstruction");
 
-	print_highlight("The total length: "); print_value("%d ", point_cloud_ptr_filtered->width); printf("frames\n");
+	std::cout << BOLDWHITE"The total length: " << BOLDBLUE" " << point_cloud_ptr_filtered->width << BOLDWHITE"points" << RESET" " << std::endl;
 
 	//main loop
 	while (!viewer->wasStopped())
