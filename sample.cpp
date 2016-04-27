@@ -64,6 +64,11 @@ struct hash_table
 
 int main() 
 {
+	// ground pose
+	ParameterReader pd("../data/poses/05.txt");
+	cv::Mat gtpose;
+	//pd.getData( index, gtpose );
+
 	//set visual odometry parameters
 	VisualOdometryStereo::parameters param; 
 	setVO(param, f, c_u, c_v, base, inlier_threshold);
