@@ -280,3 +280,57 @@ void postMesh(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloudRGB_filtered_)
 	viewer_mesh->spin();
 }
 
+void calDisparity(cv::Mat I1, cv::Mat I2, cv::Mat& disparity) 
+{  
+	// get image width and height
+	int32_t width  = I1.cols;
+	int32_t height = I1.rows;
+
+	// allocate memory for disparity images
+	const int32_t dims[3] = {width,height,width}; // bytes per line = width
+	float* D1_data = (float*)malloc(width*height*sizeof(float));
+	float* D2_data = (float*)malloc(width*height*sizeof(float));
+
+	// process
+	Elas::parameters param;
+	param.postprocess_only_left = false;
+	Elas elas(param);
+	elas.process(I1.data,I2.data,D1_data,D2_data,dims);
+
+	// find maximum disparity for scaling output disparity images to [0..255]
+	float disp_max = 0;
+	for (int32_t i=0; i<width*height; i++)
+	{
+		if (D1_data[i]>disp_max) disp_max = D1_data[i];
+		if (D2_data[i]>disp_max) disp_max = D2_data[i];
+	}
+
+	// copy float to uchar
+	image<uchar> *D1 = new image<uchar>(width,height);
+	image<uchar> *D2 = new image<uchar>(width,height);
+	for (int32_t i=0; i<width*height; i++) 
+	{
+		D1->data[i] = (uint8_t)max(255.0*D1_data[i]/disp_max,0.0);
+		D2->data[i] = (uint8_t)max(255.0*D2_data[i]/disp_max,0.0);
+	}
+
+	// display
+	disparity = Mat(I1.rows, I1.cols, CV_8UC1, Scalar(0));
+	for (int i=0; i<I1.rows; i++)
+	{
+		uchar* disp_ptr = disparity.ptr<uchar>(i);
+		for (int j=0; j<I1.cols; j++)
+		{
+			disp_ptr[j] = D1->data[i*I1.cols+j];
+		}
+	}
+	// gray_disparity
+	//namedWindow("gray_disparity", 0);
+	//cv::imshow("gray_disparity", disparity);
+
+	// free memory  
+	delete D1;
+	delete D2;
+	free(D1_data);
+	free(D2_data);
+}

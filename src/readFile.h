@@ -73,6 +73,8 @@ public:
 
         //std::cout << BOLDWHITE"pose[ " << index << "/" << poseframe.size()-2 << "]" << std::endl 
         //                << BOLDGREEN"" << poseMatrix << RESET" " << std::endl << std::endl;
+	
+        std::cout << BOLDWHITE"[ " << index << "/" << poseframe.size()-2 << "]" << RESET" " << std::endl;
     }
 
 private:

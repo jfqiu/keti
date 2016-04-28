@@ -1,16 +1,15 @@
 #include "utils.h"
 
 //stereo params
-//double f     = 721.5377; //focal length in pixels
-//double c_u   = 609.5593;  //principal point (u-coordinate) in pixels
-//double c_v   = 172.8540;  //principal point (v-coordinate) in pixels
-//double base  = 0.537150588; //baseline in meters
-//double inlier_threshold = 6.0f; //RANSAC parameter for classifying inlier and outlier
+double f     = 721.5377; //focal length in pixels
+double c_u   = 609.5593;  //principal point (u-coordinate) in pixels
+double c_v   = 172.8540;  //principal point (v-coordinate) in pixels
+double base  = 0.537150588; //baseline in meters
 
-double f     = 707.0912; //focal length in pixels
-double c_u   = 601.8873;  //principal point (u-coordinate) in pixels
-double c_v   = 183.1104;  //principal point (v-coordinate) in pixels
-double base  = 0.537904488; //baseline in meters
+//double f     = 707.0912; //focal length in pixels
+//double c_u   = 601.8873;  //principal point (u-coordinate) in pixels
+//double c_v   = 183.1104;  //principal point (v-coordinate) in pixels
+//double base  = 0.537904488; //baseline in meters
 double inlier_threshold = 6.0f; //RANSAC parameter for classifying inlier and outlier
 
 //pcl params
@@ -19,12 +18,17 @@ double default_feature_threshold = 5.0; //5.0
 double default_normal_radius_search = 0.03; //0.03
 
 //roi space
-int roix = 15;
-int roiy = 5;
+int roix = 10;
+int roiy = 5; //0006-10
 int roiz = 30;
 
 //colormap
 string colorfile = "/home/inin/SegNet/caffe-segnet/examples/segnet/color.png";
+
+//size
+int cropRows = 360;
+int cropCols = 480;
+int cropCols2 = 960;
 
 //data directory
 //string rgb_dirL = "/media/inin/data/tracking dataset/testing/image_02/0006/"; //tt0006 tr0013 tt0011 tt0003  tr0009 173-213
@@ -33,15 +37,10 @@ string rgb_dirL = "/media/inin/data/sequences/05/image_2/";
 string rgb_dirR = "/media/inin/data/sequences/05/image_3/";
 //00(segnet-bad) 05(good-xiaodao) 07(confuse-xiaodao) 12(gaosu) 13(xiaodao) 16(kuandao) 18(segnet-bad) 19(segnet-confuse) 21(gaosu)
 
-//size
-int cropRows = 360;
-int cropCols = 480;
-int cropCols2 = 960;
-
 //update voxel
-const int gridScale = 2;
-const int gridWidth = gridScale*300;
-const int gridHeight = gridScale*15;
+const int gridScale = 2; //05-2 0006-10
+const int gridWidth = gridScale*200; //05-200 0006-80
+const int gridHeight = gridScale*15; //05-15 0006-5
 
 /*
  	            * (z)
@@ -105,7 +104,7 @@ int main()
 	double duration;
 	gettimeofday(&t_start, NULL);    
 
-	int count = 1200;  
+	int count = 1200;   //05-1200 07-1085 0006-50
 	for (int n = 0; n < count; ++n)
 	{
 		//variables
@@ -148,6 +147,12 @@ int main()
 			motion = viso.getMotion();
 
 			//computing disparity image (SGBM or BM method) and 3D reconstruction by triangulation
+
+			//calDisparity(img_lc, img_rc, disp_sgbm);
+			//applyColorMap(disp_sgbm, disp_show_sgbm, COLORMAP_JET); 
+			//cv::imshow("Disparity", disp_show_sgbm);
+			//disp_sgbm.convertTo(disp_sgbm, CV_16SC1, 16.0f); 
+
 			calDisparity_SGBM(img_lc, img_rc, disp_sgbm, disp_show_sgbm);
 			triangulate10D(img_lc, disp_sgbm, xyz, f, c_u, c_v, base, roi_);
 
@@ -163,7 +168,7 @@ int main()
 			poseChanged = Matrix_::inv(M);
 			pose = pose * poseChanged;
 			key_pose = key_pose * poseChanged;
-			
+			/*
 			//gt
 			cv::Mat gtpose;
 			Matrix_ gt_ = Matrix_::eye(4); 
@@ -172,7 +177,7 @@ int main()
 				for (int32_t j=0; j<4; ++j)
 					gt_.val[i][j] = gtpose.at<double>(i,j);
 			pose = gt_;
-			
+			*/
 			success = true;
 		}
 		delete quadmatcher;
@@ -411,12 +416,16 @@ int main()
 		pclut(cloud_anno, tmpcloud);
 		rgbviewer.showCloud(tmpcloud, "rgbviewer");
 		while( !rgbviewer.wasStopped() ) {}
+		*/
 
+		/*
 		float normal_radius_search = static_cast<float>(default_normal_radius_search);
 		float leaf_x = default_leaf_size, leaf_y = default_leaf_size, leaf_z = default_leaf_size;
 		CloudLT::Ptr crfCloud(new CloudLT); compute(cloud, cloud_anno, normal_radius_search, leaf_x, leaf_y, leaf_z, crfCloud);
 		*cloud_anno = *crfCloud;
+		*/
 
+		/*
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
 		pclut(crfCloud, tmpcloud_);
 		rgbviewer.showCloud(tmpcloud_, "crfviewer");
@@ -427,9 +436,9 @@ int main()
 		for (size_t j = 0; j < cloud_anno->points.size(); j++)
 		{
 			//scalable
-			int key_x = int( cloud_anno->points[j].x * gridScale ) + 300*gridScale; 
-			int key_y = int( cloud_anno->points[j].y * gridScale ) + 15*gridScale; 
-			int key_z = int( cloud_anno->points[j].z * gridScale ) + 20*gridScale;
+			int key_x = int( cloud_anno->points[j].x * gridScale ) + 280*gridScale; //05-280 0006-280
+			int key_y = int( cloud_anno->points[j].y * gridScale ) + 15*gridScale;  //05-15 0006-15
+			int key_z = int( cloud_anno->points[j].z * gridScale ) + 20*gridScale;  //05-20 0006-20
 
 			if (key_x < 0 || key_y < 0 || key_z < 0 ||
 					fabs(key_x)>=gridWidth*2 || fabs(key_y)>=gridHeight*2 || fabs(key_z)>=gridWidth*2) continue;
@@ -471,6 +480,14 @@ int main()
 		std::cout << BOLDMAGENTA"pose: " << pose.val[0][3] << "," << pose.val[1][3] << "," << pose.val[2][3] << std::endl;
 		//std::cout << BOLDYELLOW"Pointcloud: " << pointCloudNum << RESET"" << std::endl;
 	}
+ 
+	//time elapse
+	gettimeofday(&t_end, NULL);
+	seconds  = t_end.tv_sec  - t_start.tv_sec;
+	useconds = t_end.tv_usec - t_start.tv_usec;
+	duration = seconds*1000.0 + useconds/1000.0;
+	std::cout << BOLDMAGENTA"Average time: " << duration/count << " ms" << RESET" " << std::endl;
+
 	std::cout << BOLDYELLOW"Waiting to Reconstruction..." << RESET" " << std::endl;
 	/*
 	while( !rgbviewer.wasStopped() )
@@ -520,20 +537,23 @@ int main()
 
 
 
- 
-	//time elapse
-	gettimeofday(&t_end, NULL);
-	seconds  = t_end.tv_sec  - t_start.tv_sec;
-	useconds = t_end.tv_usec - t_start.tv_usec;
-	duration = seconds*1000.0 + useconds/1000.0;
-	std::cout << BOLDMAGENTA"Average time: " << duration/count << " ms" << RESET" " << std::endl;
 
 	//display
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>);
 	pcl::PointXYZRGB point;
 	uchar pr, pg, pb;
+	size_t bar = 0;
+	size_t progress = 1;
+	size_t total = gridWidth * gridWidth * gridHeight * 8 / 100;
 	for (size_t i = 0; i < gridWidth * gridWidth * gridHeight * 8; ++i)
 	{
+		bar ++;
+		if (bar/total == progress)
+		{
+			progress ++;
+			std::cout << BOLDYELLOW"Progress bar: " << bar/total << "%" << RESET" " << std::endl; 
+		}
+
 		if (hash[i].status < 1) continue;	
 		point.x = hash[i].pt.x; 
 		point.y = hash[i].pt.y; 
@@ -563,14 +583,14 @@ int main()
 	}
 
 	//outlier removal
-	std::cout << BOLDMAGENTA"Before outlier removal" << point_cloud_ptr->points.size() << RESET" " << std::endl;
+	std::cout << BOLDMAGENTA"Before outlier removal: " << point_cloud_ptr->points.size() << RESET" " << std::endl;
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud_ptr_filtered(new pcl::PointCloud<pcl::PointXYZRGB>);
 	pcl::StatisticalOutlierRemoval<pcl::PointXYZRGB> sor_;
 	sor_.setInputCloud(point_cloud_ptr);
 	sor_.setMeanK(50);
 	sor_.setStddevMulThresh(1.0);
 	sor_.filter(*point_cloud_ptr_filtered);
-	std::cout << BOLDMAGENTA"After outlier removal" << point_cloud_ptr_filtered->points.size() << RESET" " << std::endl;
+	std::cout << BOLDMAGENTA"After outlier removal: " << point_cloud_ptr_filtered->points.size() << RESET" " << std::endl;
 
 	//create visualizer
 	point_cloud_ptr_filtered->width = (int) point_cloud_ptr_filtered->points.size();

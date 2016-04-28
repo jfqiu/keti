@@ -37,6 +37,10 @@
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/surface/vtk_smoothing/vtk_mesh_smoothing_laplacian.h>
 
+//elas
+#include "elas.h"
+#include "image.h"
+
 //crf
 #include "crf_refine.hpp"
 
@@ -54,6 +58,7 @@
 
 //fusion
 #include <queue>
+
 
 // FOREGROUND 
 #define RST  "\x1B[0m"
@@ -130,6 +135,8 @@ void semantic(cv::Mat& img_rgb, Classifier& classifier, int img_cols, int cropCo
 //mesh
 void postMesh(pcl::PointCloud<pcl::PointXYZRGB>::Ptr);
 
+
+void calDisparity(cv::Mat I1, cv::Mat I2, cv::Mat& disparity);
 
 // linux终端的颜色输出
 #define RESET "\033[0m"
