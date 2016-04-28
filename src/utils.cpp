@@ -257,11 +257,11 @@ void postMesh(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloudRGB_filtered_)
 	pcl::PolygonMesh triangles;
 
 	// Set the maximum distance between connected points (maximum edge length)
-	gp3.setMu (100); //search maxmimum distance
-	gp3.setMaximumNearestNeighbors (100);
-	gp3.setSearchRadius (2500);
-	gp3.setMinimumAngle(M_PI/90); // 10 degrees
-	gp3.setMaximumAngle(2*M_PI/3); // 120 degrees
+	gp3.setMu (3); //search maxmimum distance
+	gp3.setMaximumNearestNeighbors (20);
+	gp3.setSearchRadius (3);
+	gp3.setMinimumAngle(M_PI/18); // 10 degrees
+	gp3.setMaximumAngle(M_PI/3); // 120 degrees
 	gp3.setMaximumSurfaceAngle(M_PI/4); // 45 degrees
 	gp3.setNormalConsistency(false);
 

@@ -1,15 +1,15 @@
 #include "utils.h"
 
 //stereo params
-double f     = 721.5377; //focal length in pixels
-double c_u   = 609.5593;  //principal point (u-coordinate) in pixels
-double c_v   = 172.8540;  //principal point (v-coordinate) in pixels
-double base  = 0.537150588; //baseline in meters
+//double f     = 721.5377; //focal length in pixels
+//double c_u   = 609.5593;  //principal point (u-coordinate) in pixels
+//double c_v   = 172.8540;  //principal point (v-coordinate) in pixels
+//double base  = 0.537150588; //baseline in meters
 
-//double f     = 707.0912; //focal length in pixels
-//double c_u   = 601.8873;  //principal point (u-coordinate) in pixels
-//double c_v   = 183.1104;  //principal point (v-coordinate) in pixels
-//double base  = 0.537904488; //baseline in meters
+double f     = 707.0912; //focal length in pixels
+double c_u   = 601.8873;  //principal point (u-coordinate) in pixels
+double c_v   = 183.1104;  //principal point (v-coordinate) in pixels
+double base  = 0.537904488; //baseline in meters
 double inlier_threshold = 6.0f; //RANSAC parameter for classifying inlier and outlier
 
 //pcl params
@@ -104,7 +104,7 @@ int main()
 	double duration;
 	gettimeofday(&t_start, NULL);    
 
-	int count = 1200;   //05-1200 07-1085 0006-50
+	int count = 50;   //05-1200 07-1085 0006-50
 	for (int n = 0; n < count; ++n)
 	{
 		//variables
@@ -148,7 +148,7 @@ int main()
 
 			//computing disparity image (SGBM or BM method) and 3D reconstruction by triangulation
 
-			//calDisparity(img_lc, img_rc, disp_sgbm);
+			calDisparity(img_lc, img_rc, disp_sgbm);
 			//applyColorMap(disp_sgbm, disp_show_sgbm, COLORMAP_JET); 
 			//cv::imshow("Disparity", disp_show_sgbm);
 			//disp_sgbm.convertTo(disp_sgbm, CV_16SC1, 16.0f); 
@@ -609,6 +609,9 @@ int main()
 		viewer->spinOnce(100);
 		boost::this_thread::sleep(boost::posix_time::microseconds(100000));
 	}
+
+	/********* mesh ********/
+	postMesh(point_cloud_ptr_filtered);
 
 	return 0;
 }
