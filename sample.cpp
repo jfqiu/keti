@@ -104,7 +104,7 @@ int main()
 	double duration;
 	gettimeofday(&t_start, NULL);    
 
-	int count = 1200;   //05-1200 07-1085 0006-50
+	int count = 12;   //05-1200 07-1085 0006-50
 	for (int n = 0; n < count; ++n)
 	{
 		//variables
@@ -305,6 +305,7 @@ int main()
 					}
 				}
 			}
+			/*
 			// semantic cues remove moving error
 			//cv::imshow("key_moving_mask", key_moving_mask);
 			int cues = 0;
@@ -326,6 +327,7 @@ int main()
 					else key_moving_ptr[u] = 0;
 				}
 			}
+			*/
 			// dilate
 			//int dilate_type = MORPH_RECT;
 			//int dilate_ele_size = 3;
@@ -356,6 +358,8 @@ int main()
 		pcl::PointXYZRGBL pointRGBL;
 		CloudT::Ptr cloud(new CloudT);
 		CloudLT::Ptr cloud_anno(new CloudLT);   
+
+		CloudT::Ptr cloud_motion(new CloudT); 
 		for (int v = 0; v < img_rows; ++v)
 		{
 			const uchar* moving_ptr = key_moving_mask.ptr<uchar>(v);
@@ -406,10 +410,23 @@ int main()
 						if (pb == pg && pg == pr) continue;
 						cloud->points.push_back(pointRGB);
 						cloud_anno->points.push_back(pointRGBL);
+
+						//motion
+						pointRGB.r = moving_ptr[u];
+						pointRGB.g = pointRGBL.label;
+						cloud_motion->points.push_back(pointRGB);
 					}
 				}
 			}
 		} 
+
+		// Create the filtering object
+		CloudT::Ptr cloud_motion_filtered(new CloudT);  
+		pcl::VoxelGrid<pcl::PointXYZRGB> sor;
+		sor.setInputCloud (cloud_motion);
+		sor.setLeafSize (default_leaf_size, default_leaf_size, default_leaf_size);
+		sor.filter (*cloud_motion_filtered);
+
 
 		/************** 3d CRF mapInference(720ms) *************/
 		/*
@@ -436,6 +453,9 @@ int main()
 		/********************* hash update  ********************/
 		for (size_t j = 0; j < cloud_anno->points.size(); j++)
 		{
+			//remove motion pixels
+			if ( cloud_motion_filtered->points[j].r==255 && cloud_anno->points[j].label) continue;
+
 			//scalable
 			int key_x = int( cloud_anno->points[j].x * gridScale ) + 280*gridScale; //05-280 0006-280
 			int key_y = int( cloud_anno->points[j].y * gridScale ) + 15*gridScale;  //05-15 0006-15
