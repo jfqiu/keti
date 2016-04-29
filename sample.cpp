@@ -80,7 +80,7 @@ int main()
 
 	//pcl
     //pcl::visualization::CloudViewer voviewer( "voviewer" );
-    //pcl::visualization::CloudViewer rgbviewer( "rgbviewer" );
+    pcl::visualization::CloudViewer rgbviewer( "rgbviewer" );
     //pcl::visualization::CloudViewer crfviewer( "crfviewer" );
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr vooutput (new pcl::PointCloud<pcl::PointXYZRGB>);
 
@@ -105,7 +105,7 @@ int main()
 	double duration;
 	gettimeofday(&t_start, NULL);    
 
-	int count = 50;   //05-1200 07-1085 0006-50
+	int count = 10;   //05-1200 07-1085 0006-50
 	for (int n = 0; n < count; ++n)
 	{
 		//variables
@@ -149,7 +149,7 @@ int main()
 
 			//computing disparity image (SGBM or BM method) and 3D reconstruction by triangulation
 
-			calDisparity(img_lc, img_rc, disp_sgbm);
+			//calDisparity(img_lc, img_rc, disp_sgbm);
 			//applyColorMap(disp_sgbm, disp_show_sgbm, COLORMAP_JET); 
 			//cv::imshow("Disparity", disp_show_sgbm);
 			//disp_sgbm.convertTo(disp_sgbm, CV_16SC1, 16.0f); 
@@ -305,7 +305,7 @@ int main()
 					}
 				}
 			}
-			
+			/*
 			// semantic cues remove moving error
 			//cv::imshow("key_moving_mask", key_moving_mask);
 			int cues = 0;
@@ -333,7 +333,7 @@ int main()
 			//Mat ele = getStructuringElement(dilate_type, Size(2*dilate_ele_size+1, 2*dilate_ele_size+1), Point(dilate_ele_size, dilate_ele_size));
 			//dilate(key_moving_mask, key_moving_mask, ele);
 			//cv::imshow("refine_key_moving_mask", key_moving_mask);
-			
+			*/
 			keyFrameT ++;
 			key_pose = Matrix_::eye(4);
 		}
@@ -357,6 +357,8 @@ int main()
 		pcl::PointXYZRGBL pointRGBL;
 		CloudT::Ptr cloud(new CloudT);
 		CloudLT::Ptr cloud_anno(new CloudLT); 
+
+		CloudT::Ptr cloud_motion(new CloudT); 
 		for (int v = 0; v < img_rows; ++v)
 		{
 			const uchar* moving_ptr = key_moving_mask.ptr<uchar>(v);
@@ -370,7 +372,8 @@ int main()
 				if ( v>=img_rows-cropRows && v<img_rows && u>=img_cols/2-cropCols && u<img_cols/2+cropCols ) 
 				{
     				short d = disparity_ptr[u];
-    				if ( fabs(d)>FLT_EPSILON && roi_ptr[u]!=0 && moving_ptr[u]!=255) //remove moving objects and outside the ROI
+    				if ( fabs(d)>FLT_EPSILON && roi_ptr[u]!=0) //remove moving objects and outside the ROI
+    				//if ( fabs(d)>FLT_EPSILON && roi_ptr[u]!=0 && moving_ptr[u]!=255) //remove moving objects and outside the ROI
 					{
 						//3d points
 						px = recons_ptr[10*u] * pose.val[0][0] + recons_ptr[10*u+1] * pose.val[0][1] + recons_ptr[10*u+2] * pose.val[0][2] + pose.val[0][3];
@@ -408,10 +411,22 @@ int main()
 
 						cloud->points.push_back(pointRGB);
 						cloud_anno->points.push_back(pointRGBL);
+
+						//motion
+						pointRGB.r = moving_ptr[u];
+						pointRGB.g = pointRGBL.label;
+						cloud_motion->points.push_back(pointRGB);
 					}
 				}
 			}
 		}
+
+		// Create the filtering object
+		CloudT::Ptr cloud_motion_filtered(new CloudT);  
+		pcl::VoxelGrid<pcl::PointXYZRGB> sor;
+		sor.setInputCloud (cloud_motion);
+		sor.setLeafSize (default_leaf_size, default_leaf_size, default_leaf_size);
+		sor.filter (*cloud_motion_filtered);
 
 		/************** 3d CRF mapInference(720ms) *************/
 		/*
@@ -421,23 +436,25 @@ int main()
 		while( !rgbviewer.wasStopped() ) {}
 		*/
 
-		/*
+		
 		float normal_radius_search = static_cast<float>(default_normal_radius_search);
 		float leaf_x = default_leaf_size, leaf_y = default_leaf_size, leaf_z = default_leaf_size;
 		CloudLT::Ptr crfCloud(new CloudLT); compute(cloud, cloud_anno, normal_radius_search, leaf_x, leaf_y, leaf_z, crfCloud);
 		*cloud_anno = *crfCloud;
-		*/
+		
 
-		/*
+		
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
 		pclut(crfCloud, tmpcloud_);
 		rgbviewer.showCloud(tmpcloud_, "crfviewer");
-		while( !rgbviewer.wasStopped() ) {}
-		*/
+		//while( !rgbviewer.wasStopped() ) {}
+		
 
 		/********************* hash update  ********************/
 		for (size_t j = 0; j < cloud_anno->points.size(); j++)
 		{
+			if ( cloud_motion_filtered->points[j].r==255 && cloud_anno->points[j].label) continue;
+
 			//scalable
 			int key_x = int( cloud_anno->points[j].x * gridScale ) + 20*gridScale; //05-280 0006-20
 			int key_y = int( cloud_anno->points[j].y * gridScale ) + 5*gridScale;  //05-15 0006-5
@@ -492,12 +509,12 @@ int main()
 	std::cout << BOLDMAGENTA"Average time: " << duration/count << " ms" << RESET" " << std::endl;
 
 	std::cout << BOLDYELLOW"Waiting to Reconstruction..." << RESET" " << std::endl;
-	/*
+	
 	while( !rgbviewer.wasStopped() )
     {
         
     }
-	*/
+	
 	//while( !voviewer.wasStopped() )
     {
         
