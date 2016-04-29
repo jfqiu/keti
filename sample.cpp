@@ -104,7 +104,7 @@ int main()
 	double duration;
 	gettimeofday(&t_start, NULL);    
 
-	int count = 50;   //05-1200 07-1085 0006-50
+	int count = 1200;   //05-1200 07-1085 0006-50
 	for (int n = 0; n < count; ++n)
 	{
 		//variables
@@ -168,7 +168,7 @@ int main()
 			poseChanged = Matrix_::inv(M);
 			pose = pose * poseChanged;
 			key_pose = key_pose * poseChanged;
-			/*
+			
 			//gt
 			cv::Mat gtpose;
 			Matrix_ gt_ = Matrix_::eye(4); 
@@ -177,7 +177,7 @@ int main()
 				for (int32_t j=0; j<4; ++j)
 					gt_.val[i][j] = gtpose.at<double>(i,j);
 			pose = gt_;
-			*/
+			
 			success = true;
 		}
 		delete quadmatcher;
@@ -203,14 +203,14 @@ int main()
 		vec.push_back(item);	
 
 		//build key frame
-		double thetax = atan2(key_pose.val[2][1], key_pose.val[2][2]) * 180.0 / M_PI;	
-		double thetay = atan2(-key_pose.val[2][0], sqrt(key_pose.val[2][1]*key_pose.val[2][1] + key_pose.val[2][2]*key_pose.val[2][2])) * 180.0 / M_PI;	
-		double thetaz = atan2(key_pose.val[1][0], key_pose.val[0][0]) * 180.0 / M_PI;
-		double translationx = key_pose.val[0][3];		
-		double translationy = key_pose.val[1][3];		
-		double translationz = key_pose.val[2][3];	
-		double r_change = sqrt( (thetax*thetax) + (thetay*thetay) + (thetaz*thetaz) );
-		double t_change = sqrt( (translationx*translationx) + (translationy*translationy) + (translationz*translationz) );
+		//double thetax = atan2(key_pose.val[2][1], key_pose.val[2][2]) * 180.0 / M_PI;	
+		//double thetay = atan2(-key_pose.val[2][0], sqrt(key_pose.val[2][1]*key_pose.val[2][1] + key_pose.val[2][2]*key_pose.val[2][2])) * 180.0 / M_PI;	
+		//double thetaz = atan2(key_pose.val[1][0], key_pose.val[0][0]) * 180.0 / M_PI;
+		//double translationx = key_pose.val[0][3];		
+		//double translationy = key_pose.val[1][3];		
+		//double translationz = key_pose.val[2][3];	
+		//double r_change = sqrt( (thetax*thetax) + (thetay*thetay) + (thetaz*thetaz) );
+		//double t_change = sqrt( (translationx*translationx) + (translationy*translationy) + (translationz*translationz) );
 		float rt_change = key_pose.l2norm();
 		//printf("size[%zu] [%f,%f,%f] [%f,%f,%f]\n", vec.size(),thetax,thetay,thetaz,translationx,translationy,translationz);
 		//std::cout << BOLDWHITE"[r_key, t_key, rt_key]: " << BOLDGREEN" " << r_change << " " << t_change << BOLDYELLOW" " << rt_change << RESET" " << std::endl;
@@ -305,7 +305,7 @@ int main()
 				}
 			}
 			// semantic cues remove moving error
-			cv::imshow("key_moving_mask", key_moving_mask);
+			//cv::imshow("key_moving_mask", key_moving_mask);
 			int cues = 0;
 			for (int v = 0; v < img_rows; v++)
 			{
@@ -326,11 +326,11 @@ int main()
 				}
 			}
 			// dilate
-			int dilate_type = MORPH_RECT;
-			int dilate_ele_size = 3;
-			Mat ele = getStructuringElement(dilate_type, Size(2*dilate_ele_size+1, 2*dilate_ele_size+1), Point(dilate_ele_size, dilate_ele_size));
-			dilate(key_moving_mask, key_moving_mask, ele);
-			cv::imshow("refine_key_moving_mask", key_moving_mask);
+			//int dilate_type = MORPH_RECT;
+			//int dilate_ele_size = 3;
+			//Mat ele = getStructuringElement(dilate_type, Size(2*dilate_ele_size+1, 2*dilate_ele_size+1), Point(dilate_ele_size, dilate_ele_size));
+			//dilate(key_moving_mask, key_moving_mask, ele);
+			//cv::imshow("refine_key_moving_mask", key_moving_mask);
 
 			keyFrameT ++;
 			key_pose = Matrix_::eye(4);
@@ -611,7 +611,7 @@ int main()
 	}
 
 	/********* mesh ********/
-	postMesh(point_cloud_ptr_filtered);
+	//postMesh(point_cloud_ptr_filtered);
 
 	return 0;
 }
