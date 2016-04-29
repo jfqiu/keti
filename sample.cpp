@@ -1,15 +1,15 @@
 #include "utils.h"
 
 //stereo params
-//double f     = 721.5377; //focal length in pixels
-//double c_u   = 609.5593;  //principal point (u-coordinate) in pixels
-//double c_v   = 172.8540;  //principal point (v-coordinate) in pixels
-//double base  = 0.537150588; //baseline in meters
+double f     = 721.5377; //focal length in pixels
+double c_u   = 609.5593;  //principal point (u-coordinate) in pixels
+double c_v   = 172.8540;  //principal point (v-coordinate) in pixels
+double base  = 0.537150588; //baseline in meters
 
-double f     = 707.0912; //focal length in pixels
-double c_u   = 601.8873;  //principal point (u-coordinate) in pixels
-double c_v   = 183.1104;  //principal point (v-coordinate) in pixels
-double base  = 0.537904488; //baseline in meters
+//double f     = 707.0912; //focal length in pixels
+//double c_u   = 601.8873;  //principal point (u-coordinate) in pixels
+//double c_v   = 183.1104;  //principal point (v-coordinate) in pixels
+//double base  = 0.537904488; //baseline in meters
 double inlier_threshold = 6.0f; //RANSAC parameter for classifying inlier and outlier
 
 //pcl params
@@ -31,26 +31,27 @@ int cropCols = 480;
 int cropCols2 = 960;
 
 //data directory
-//string rgb_dirL = "/media/inin/data/tracking dataset/testing/image_02/0006/"; //tt0006 tr0013 tt0011 tt0003  tr0009 173-213
-//string rgb_dirR = "/media/inin/data/tracking dataset/testing/image_03/0006/";
-string rgb_dirL = "/media/inin/data/sequences/05/image_2/";
-string rgb_dirR = "/media/inin/data/sequences/05/image_3/";
+string rgb_dirL = "/media/inin/data/tracking dataset/testing/image_02/0006/"; //tt0006 tr0013 tt0011 tt0003  tr0009 173-213
+string rgb_dirR = "/media/inin/data/tracking dataset/testing/image_03/0006/";
+//string rgb_dirL = "/media/inin/data/sequences/05/image_2/";
+//string rgb_dirR = "/media/inin/data/sequences/05/image_3/";
 //00(segnet-bad) 05(good-xiaodao) 07(confuse-xiaodao) 12(gaosu) 13(xiaodao) 16(kuandao) 18(segnet-bad) 19(segnet-confuse) 21(gaosu)
 
 //update voxel
-const int gridScale = 2; //05-2 0006-10
-const int gridWidth = gridScale*200; //05-200 0006-80
-const int gridHeight = gridScale*15; //05-15 0006-5
+const int gridScale = 10; //05-2 0006-10
+const int gridWidth = gridScale*80; //05-200 0006-80
+const int gridHeight = gridScale*5; //05-15 0006-5
 
 /*
- 	            * (z)
-	          *
-	        *
-          *
-	     * * * * * * (x)
-	     *
-         *
-         *
+		        * (z)
+		      *
+		    *
+		  *
+		* * * * * * (x)
+		*
+		*
+		*
+		*
          (y)
 */
 
@@ -90,7 +91,7 @@ int main()
 	std::vector<Fusion> vec;	
 	Matrix_ key_pose = Matrix_::eye(4);
 	size_t keyFrameT = 0;
-	size_t fusionLen = 1; double translationT = 3; double rotationT = 5; double RT_Threshold = 5;//translation 10_m  rotation 5_degree
+	size_t fusionLen = 2; double translationT = 3; double rotationT = 5; double RT_Threshold = 5; // 0006-fusion3 translation 10_m  rotation 5_degree
 
 	//hash table
 	size_t pointCloudNum = 0;
@@ -104,7 +105,7 @@ int main()
 	double duration;
 	gettimeofday(&t_start, NULL);    
 
-	int count = 1200;   //05-1200 07-1085 0006-50
+	int count = 50;   //05-1200 07-1085 0006-50
 	for (int n = 0; n < count; ++n)
 	{
 		//variables
@@ -168,7 +169,7 @@ int main()
 			poseChanged = Matrix_::inv(M);
 			pose = pose * poseChanged;
 			key_pose = key_pose * poseChanged;
-			
+			/*
 			//gt
 			cv::Mat gtpose;
 			Matrix_ gt_ = Matrix_::eye(4); 
@@ -177,7 +178,7 @@ int main()
 				for (int32_t j=0; j<4; ++j)
 					gt_.val[i][j] = gtpose.at<double>(i,j);
 			pose = gt_;
-			
+			*/
 			success = true;
 		}
 		delete quadmatcher;
@@ -304,6 +305,7 @@ int main()
 					}
 				}
 			}
+			
 			// semantic cues remove moving error
 			//cv::imshow("key_moving_mask", key_moving_mask);
 			int cues = 0;
@@ -331,7 +333,7 @@ int main()
 			//Mat ele = getStructuringElement(dilate_type, Size(2*dilate_ele_size+1, 2*dilate_ele_size+1), Point(dilate_ele_size, dilate_ele_size));
 			//dilate(key_moving_mask, key_moving_mask, ele);
 			//cv::imshow("refine_key_moving_mask", key_moving_mask);
-
+			
 			keyFrameT ++;
 			key_pose = Matrix_::eye(4);
 		}
@@ -354,7 +356,7 @@ int main()
 		pcl::PointXYZRGB pointRGB;
 		pcl::PointXYZRGBL pointRGBL;
 		CloudT::Ptr cloud(new CloudT);
-		CloudLT::Ptr cloud_anno(new CloudLT);  
+		CloudLT::Ptr cloud_anno(new CloudLT); 
 		for (int v = 0; v < img_rows; ++v)
 		{
 			const uchar* moving_ptr = key_moving_mask.ptr<uchar>(v);
@@ -365,10 +367,10 @@ int main()
 
 			for (int u = 0; u < img_cols; ++u)
 			{
-				if (v>=img_rows-cropRows && v<img_rows && u>=img_cols/2-cropCols && u<img_cols/2+cropCols)
+				if ( v>=img_rows-cropRows && v<img_rows && u>=img_cols/2-cropCols && u<img_cols/2+cropCols ) 
 				{
     				short d = disparity_ptr[u];
-    				if (fabs(d)>FLT_EPSILON && roi_ptr[u]!=0 && moving_ptr[u]!=255) //remove moving objects and outside the ROI
+    				if ( fabs(d)>FLT_EPSILON && roi_ptr[u]!=0 && moving_ptr[u]!=255) //remove moving objects and outside the ROI
 					{
 						//3d points
 						px = recons_ptr[10*u] * pose.val[0][0] + recons_ptr[10*u+1] * pose.val[0][1] + recons_ptr[10*u+2] * pose.val[0][2] + pose.val[0][3];
@@ -397,12 +399,13 @@ int main()
 						pointRGBL.z =  pz;
 						pointRGBL.rgb = *reinterpret_cast<float*>(&rgb);
 
-						if (u < img_cols/2)
+						if ( u < img_cols/2 )
 							pointRGBL.label = predictionsL[i*cropCols+j].second; 
 						else 
 							pointRGBL.label = predictionsR[i*cropCols+j].second;
 
-						if (pb == pg && pg == pr) continue;
+						if ( pb == pg && pg == pr ) continue;
+
 						cloud->points.push_back(pointRGB);
 						cloud_anno->points.push_back(pointRGBL);
 					}
@@ -436,8 +439,8 @@ int main()
 		for (size_t j = 0; j < cloud_anno->points.size(); j++)
 		{
 			//scalable
-			int key_x = int( cloud_anno->points[j].x * gridScale ) + 280*gridScale; //05-280 0006-280
-			int key_y = int( cloud_anno->points[j].y * gridScale ) + 15*gridScale;  //05-15 0006-15
+			int key_x = int( cloud_anno->points[j].x * gridScale ) + 20*gridScale; //05-280 0006-20
+			int key_y = int( cloud_anno->points[j].y * gridScale ) + 5*gridScale;  //05-15 0006-5
 			int key_z = int( cloud_anno->points[j].z * gridScale ) + 20*gridScale;  //05-20 0006-20
 
 			if (key_x < 0 || key_y < 0 || key_z < 0 ||

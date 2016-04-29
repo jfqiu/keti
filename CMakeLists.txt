@@ -12,7 +12,8 @@ find_package(cvsba REQUIRED)
 
 #set build option
 SET(CMAKE_BUILD_TYPE "Debug") 
-SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb -std=c++0x")
+#SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb -std=c++0x")
+SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wno-deprecated -g -ggdb -std=c++0x")
 SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
 SET(CMAKE_CXX_FLAGS "-msse3")
 
