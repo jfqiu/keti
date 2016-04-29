@@ -355,7 +355,7 @@ int main()
 		pcl::PointXYZRGB pointRGB;
 		pcl::PointXYZRGBL pointRGBL;
 		CloudT::Ptr cloud(new CloudT);
-		CloudLT::Ptr cloud_anno(new CloudLT);  
+		CloudLT::Ptr cloud_anno(new CloudLT);   
 		for (int v = 0; v < img_rows; ++v)
 		{
 			const uchar* moving_ptr = key_moving_mask.ptr<uchar>(v);
