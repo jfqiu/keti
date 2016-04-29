@@ -33,7 +33,7 @@ string rgb_dirR = "/media/inin/data/sequences/05/image_3/";
 //00(segnet-bad) 05(good-xiaodao) 07(confuse-xiaodao) 12(gaosu) 13(xiaodao) 16(kuandao) 18(segnet-bad) 19(segnet-confuse) 21(gaosu)
 
 //update voxel
-const int gridScale = 2; //05-2 0006-10
+const int gridScale = 4; //05-2 0006-10
 const int gridWidth = gridScale*200; //05-200 0006-80
 const int gridHeight = gridScale*15; //05-15 0006-5
 
@@ -104,7 +104,7 @@ int main()
 	double duration;
 	gettimeofday(&t_start, NULL);    
 
-	int count = 12;   //05-1200 07-1085 0006-50
+	int count = 1200;   //05-1200 07-1085 0006-50
 	for (int n = 0; n < count; ++n)
 	{
 		//variables
@@ -633,6 +633,11 @@ int main()
 
 	/********* mesh ********/
 	//postMesh(point_cloud_ptr_filtered);
+
+	/********* save ********/  
+	//PCDWriter w;
+  	//w.writeBinaryCompressed ("result.pcd", *point_cloud_ptr_filtered);
+	pcl::io::savePCDFileASCII ("result.pcd", *point_cloud_ptr_filtered);
 
 	return 0;
 }
