@@ -12,11 +12,6 @@ double base  = 0.537150588; //baseline in meters
 //double base  = 0.537904488; //baseline in meters
 double inlier_threshold = 6.0f; //RANSAC parameter for classifying inlier and outlier
 
-//pcl params
-float  default_leaf_size = 0.2f; //0.005f
-double default_feature_threshold = 5.0; //5.0
-double default_normal_radius_search = 0.03; //0.03
-
 //roi space
 int roix = 10;
 int roiy = 5; //0006-10
@@ -41,6 +36,11 @@ string rgb_dirR = "/media/inin/data/tracking dataset/testing/image_03/0006/";
 const int gridScale = 10; //05-2 0006-10
 const int gridWidth = gridScale*80; //05-200 0006-80
 const int gridHeight = gridScale*5; //05-15 0006-5
+
+//crf params
+float  default_leaf_size = 1.0f / float(gridScale); //0.005f
+double default_feature_threshold = 5.0; //5.0
+double default_normal_radius_search = default_leaf_size * 10.0f; //0.03
 
 /*
 		        * (z)
@@ -79,7 +79,7 @@ int main()
 	uv_disparity.SetMinAdjustIntense(20);
 
 	//pcl
-    pcl::visualization::CloudViewer voviewer( "voviewer" );
+    //pcl::visualization::CloudViewer voviewer( "voviewer" );
     //pcl::visualization::CloudViewer rgbviewer( "rgbviewer" );
     //pcl::visualization::CloudViewer crfviewer( "crfviewer" );
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr vooutput (new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -91,7 +91,7 @@ int main()
 	std::vector<Fusion> vec;	
 	Matrix_ key_pose = Matrix_::eye(4);
 	size_t keyFrameT = 0;
-	size_t fusionLen = 2; double translationT = 3; double rotationT = 5; double RT_Threshold = 5; // 0006-fusion3 translation 10_m  rotation 5_degree
+	size_t fusionLen = 1; double translationT = 3; double rotationT = 5; double RT_Threshold = 5; // 0006-fusion3 translation 10_m  rotation 5_degree
 
 	//hash table
 	size_t pointCloudNum = 0;
@@ -477,7 +477,7 @@ int main()
 		vopoint.g = 0;
 		vopoint.b = 0;
 		vooutput->push_back(vopoint);
-		voviewer.showCloud(vooutput);
+		//voviewer.showCloud(vooutput);
 		
 		std::cout << BOLDGREEN"Updated[" << n+1 << "]" << BOLDBLUE" (" << keyFrameT << ")" << RESET" " << std::endl;
 		std::cout << BOLDMAGENTA"pose: " << pose.val[0][3] << "," << pose.val[1][3] << "," << pose.val[2][3] << std::endl;
@@ -498,7 +498,7 @@ int main()
         
     }
 	*/
-	while( !voviewer.wasStopped() )
+	//while( !voviewer.wasStopped() )
     {
         
     }

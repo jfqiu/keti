@@ -49,7 +49,7 @@ void compute (const CloudT::Ptr &cloud,
 	crf.setSmoothnessKernelParameters (3, 3, 3, 1.0);
 	crf.setAppearanceKernelParameters (30, 30, 30, 20, 20, 20, 3.5);
 	//crf.setSurfaceKernelParameters (20, 20, 20, 0.3f, 0.3f, 0.3f, 8.5);
-	crf.setSurfaceKernelParameters (20, 20, 20, 0.3, 0.3, 0.3, 0.0);
+	crf.setSurfaceKernelParameters (20, 20, 20, 0.3, 0.3, 0.3, 3.5);
 	crf.setNumberOfIterations (10);
 	crf.segmentPoints (*out);
 
