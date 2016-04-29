@@ -13,9 +13,9 @@ double base  = 0.537904488; //baseline in meters
 double inlier_threshold = 6.0f; //RANSAC parameter for classifying inlier and outlier
 
 //pcl params
-float  default_leaf_size = 0.2f; //0.005f
+float  default_leaf_size = 0.05f; //0.005f
 double default_feature_threshold = 5.0; //5.0
-double default_normal_radius_search = 0.03; //0.03
+double default_normal_radius_search = 0.5f; //0.03
 
 //roi space
 int roix = 10;
@@ -38,9 +38,9 @@ string rgb_dirR = "/media/inin/data/sequences/05/image_3/";
 //00(segnet-bad) 05(good-xiaodao) 07(confuse-xiaodao) 12(gaosu) 13(xiaodao) 16(kuandao) 18(segnet-bad) 19(segnet-confuse) 21(gaosu)
 
 //update voxel
-const int gridScale = 2; //05-2 0006-10
-const int gridWidth = gridScale*200; //05-200 0006-80
-const int gridHeight = gridScale*15; //05-15 0006-5
+const int gridScale = 20; //05-2 0006-10
+const int gridWidth = gridScale*20; //05-200 0006-80
+const int gridHeight = gridScale*5; //05-15 0006-5
 
 /*
  	            * (z)
@@ -78,8 +78,8 @@ int main()
 	uv_disparity.SetMinAdjustIntense(20);
 
 	//pcl
-    pcl::visualization::CloudViewer voviewer( "voviewer" );
-    //pcl::visualization::CloudViewer rgbviewer( "rgbviewer" );
+    //pcl::visualization::CloudViewer voviewer( "voviewer" );
+    pcl::visualization::CloudViewer rgbviewer( "rgbviewer" );
     //pcl::visualization::CloudViewer crfviewer( "crfviewer" );
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr vooutput (new pcl::PointCloud<pcl::PointXYZRGB>);
 
@@ -105,7 +105,7 @@ int main()
 	gettimeofday(&t_start, NULL);    
 
 	int count = 1200;   //05-1200 07-1085 0006-50
-	for (int n = 0; n < count; ++n)
+	for (int n = 852; n < 853; ++n)
 	{
 		//variables
 		cv::Mat moving_mask, roi_mask, xyz, disp_sgbm, disp_show_sgbm, ground_mask;
@@ -168,7 +168,7 @@ int main()
 			poseChanged = Matrix_::inv(M);
 			pose = pose * poseChanged;
 			key_pose = key_pose * poseChanged;
-			
+			/*
 			//gt
 			cv::Mat gtpose;
 			Matrix_ gt_ = Matrix_::eye(4); 
@@ -177,14 +177,16 @@ int main()
 				for (int32_t j=0; j<4; ++j)
 					gt_.val[i][j] = gtpose.at<double>(i,j);
 			pose = gt_;
-			
+			*/
 			success = true;
 		}
 		delete quadmatcher;
 
 		/**************** Semantic segmentation ***************/
 		foo.join();
-		imshow("segnet", segnet);
+		cv::imshow("rgb", img_rgb);
+		cv::imshow("segnet", segnet);
+		cv::waitKey(1);
 		if (!success) continue;
 
 		/****************** Fusion ******************/
@@ -216,7 +218,7 @@ int main()
 		//std::cout << BOLDWHITE"[r_key, t_key, rt_key]: " << BOLDGREEN" " << r_change << " " << t_change << BOLDYELLOW" " << rt_change << RESET" " << std::endl;
 		//if (fabs(thetax)+fabs(thetay)+fabs(thetaz)>rotationT || fabs(translationx)+fabs(translationy)+fabs(translationz)>translationT)
 		//if (r_change>rotationT || t_change>translationT)
-		if (rt_change > RT_Threshold)
+		if ( true )
 		{
 			cv::Mat temp_moving_mask, temp_roi_mask, temp_xyz, temp_disp_sgbm;
 			std::vector<Prediction> temp_preL, temp_preR;
@@ -418,26 +420,26 @@ int main()
 		while( !rgbviewer.wasStopped() ) {}
 		*/
 
-		/*
+		
 		float normal_radius_search = static_cast<float>(default_normal_radius_search);
 		float leaf_x = default_leaf_size, leaf_y = default_leaf_size, leaf_z = default_leaf_size;
 		CloudLT::Ptr crfCloud(new CloudLT); compute(cloud, cloud_anno, normal_radius_search, leaf_x, leaf_y, leaf_z, crfCloud);
 		*cloud_anno = *crfCloud;
-		*/
+		
 
-		/*
+		
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
 		pclut(crfCloud, tmpcloud_);
 		rgbviewer.showCloud(tmpcloud_, "crfviewer");
 		while( !rgbviewer.wasStopped() ) {}
-		*/
+		
 
 		/********************* hash update  ********************/
 		for (size_t j = 0; j < cloud_anno->points.size(); j++)
 		{
 			//scalable
-			int key_x = int( cloud_anno->points[j].x * gridScale ) + 280*gridScale; //05-280 0006-280
-			int key_y = int( cloud_anno->points[j].y * gridScale ) + 15*gridScale;  //05-15 0006-15
+			int key_x = int( cloud_anno->points[j].x * gridScale ) + 20*gridScale; //05-280 0006-280
+			int key_y = int( cloud_anno->points[j].y * gridScale ) + 5*gridScale;  //05-15 0006-15
 			int key_z = int( cloud_anno->points[j].z * gridScale ) + 20*gridScale;  //05-20 0006-20
 
 			if (key_x < 0 || key_y < 0 || key_z < 0 ||
@@ -474,7 +476,7 @@ int main()
 		vopoint.g = 0;
 		vopoint.b = 0;
 		vooutput->push_back(vopoint);
-		voviewer.showCloud(vooutput);
+		//voviewer.showCloud(vooutput);
 		
 		std::cout << BOLDGREEN"Updated[" << n+1 << "]" << BOLDBLUE" (" << keyFrameT << ")" << RESET" " << std::endl;
 		std::cout << BOLDMAGENTA"pose: " << pose.val[0][3] << "," << pose.val[1][3] << "," << pose.val[2][3] << std::endl;
@@ -489,13 +491,13 @@ int main()
 	std::cout << BOLDMAGENTA"Average time: " << duration/count << " ms" << RESET" " << std::endl;
 
 	std::cout << BOLDYELLOW"Waiting to Reconstruction..." << RESET" " << std::endl;
-	/*
+	
 	while( !rgbviewer.wasStopped() )
     {
         
     }
-	*/
-	while( !voviewer.wasStopped() )
+	
+	//while( !voviewer.wasStopped() )
     {
         
     }
