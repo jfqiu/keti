@@ -12,11 +12,6 @@ double c_v   = 183.1104;  //principal point (v-coordinate) in pixels
 double base  = 0.537904488; //baseline in meters
 double inlier_threshold = 6.0f; //RANSAC parameter for classifying inlier and outlier
 
-//pcl params
-float  default_leaf_size = 0.2f; //0.005f
-double default_feature_threshold = 5.0; //5.0
-double default_normal_radius_search = 0.03; //0.03
-
 //roi space
 int roix = 10;
 int roiy = 5; //0006-10
@@ -41,6 +36,11 @@ string rgb_dirR = "/media/inin/data/sequences/05/image_3/";
 const int gridScale = 2; //05-2 0006-10
 const int gridWidth = gridScale*200; //05-200 0006-80
 const int gridHeight = gridScale*15; //05-15 0006-5
+
+//crf params
+float  default_leaf_size = 0.05; //0.05f
+double default_feature_threshold = 5.0; //5.0
+double default_normal_radius_search = 0.5; //0.03
 
 /*
  	            * (z)
@@ -78,7 +78,7 @@ int main()
 	uv_disparity.SetMinAdjustIntense(20);
 
 	//pcl
-    pcl::visualization::CloudViewer voviewer( "voviewer" );
+    //pcl::visualization::CloudViewer voviewer( "voviewer" );
     //pcl::visualization::CloudViewer rgbviewer( "rgbviewer" );
     //pcl::visualization::CloudViewer crfviewer( "crfviewer" );
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr vooutput (new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -148,7 +148,7 @@ int main()
 
 			//computing disparity image (SGBM or BM method) and 3D reconstruction by triangulation
 
-			calDisparity(img_lc, img_rc, disp_sgbm);
+			//calDisparity(img_lc, img_rc, disp_sgbm);
 			//applyColorMap(disp_sgbm, disp_show_sgbm, COLORMAP_JET); 
 			//cv::imshow("Disparity", disp_show_sgbm);
 			//disp_sgbm.convertTo(disp_sgbm, CV_16SC1, 16.0f); 
@@ -184,7 +184,8 @@ int main()
 
 		/**************** Semantic segmentation ***************/
 		foo.join();
-		imshow("segnet", segnet);
+		cv::imshow("segnet", segnet);
+		cv::imshow("disparity", disp_show_sgbm);
 		if (!success) continue;
 
 		/****************** Fusion ******************/
@@ -418,19 +419,19 @@ int main()
 		while( !rgbviewer.wasStopped() ) {}
 		*/
 
-		/*
+		
 		float normal_radius_search = static_cast<float>(default_normal_radius_search);
 		float leaf_x = default_leaf_size, leaf_y = default_leaf_size, leaf_z = default_leaf_size;
 		CloudLT::Ptr crfCloud(new CloudLT); compute(cloud, cloud_anno, normal_radius_search, leaf_x, leaf_y, leaf_z, crfCloud);
 		*cloud_anno = *crfCloud;
-		*/
+		
 
-		/*
-		pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
-		pclut(crfCloud, tmpcloud_);
-		rgbviewer.showCloud(tmpcloud_, "crfviewer");
-		while( !rgbviewer.wasStopped() ) {}
-		*/
+		
+		//pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
+		//pclut(crfCloud, tmpcloud_);
+		//rgbviewer.showCloud(tmpcloud_, "crfviewer");
+		//while( !rgbviewer.wasStopped() ) {}
+		
 
 		/********************* hash update  ********************/
 		for (size_t j = 0; j < cloud_anno->points.size(); j++)
@@ -474,7 +475,7 @@ int main()
 		vopoint.g = 0;
 		vopoint.b = 0;
 		vooutput->push_back(vopoint);
-		voviewer.showCloud(vooutput);
+		//voviewer.showCloud(vooutput);
 		
 		std::cout << BOLDGREEN"Updated[" << n+1 << "]" << BOLDBLUE" (" << keyFrameT << ")" << RESET" " << std::endl;
 		std::cout << BOLDMAGENTA"pose: " << pose.val[0][3] << "," << pose.val[1][3] << "," << pose.val[2][3] << std::endl;
@@ -489,13 +490,13 @@ int main()
 	std::cout << BOLDMAGENTA"Average time: " << duration/count << " ms" << RESET" " << std::endl;
 
 	std::cout << BOLDYELLOW"Waiting to Reconstruction..." << RESET" " << std::endl;
-	/*
-	while( !rgbviewer.wasStopped() )
+	
+	//while( !rgbviewer.wasStopped() )
     {
         
     }
-	*/
-	while( !voviewer.wasStopped() )
+	
+	//while( !voviewer.wasStopped() )
     {
         
     }

@@ -46,10 +46,10 @@ void compute (const CloudT::Ptr &cloud,
 	crf.setNormalCloud (cloud_normals);
 	crf.setAnnotatedCloud (anno);
 	crf.setVoxelGridLeafSize (leaf_x, leaf_y, leaf_z);
-	crf.setSmoothnessKernelParameters (3, 3, 3, 1.0);
-	crf.setAppearanceKernelParameters (30, 30, 30, 20, 20, 20, 3.5);
-	//crf.setSurfaceKernelParameters (20, 20, 20, 0.3f, 0.3f, 0.3f, 8.5);
-	crf.setSurfaceKernelParameters (20, 20, 20, 0.3, 0.3, 0.3, 0.0);
+	crf.setSmoothnessKernelParameters (3, 3, 3, 2.5); //2.5
+	crf.setAppearanceKernelParameters (30, 30, 30, 20, 20, 20, 3.5); //3.5
+	crf.setSurfaceKernelParameters (20, 20, 20, 0.3f, 0.3f, 0.3f, 1.0); //1.0
+
 	crf.setNumberOfIterations (10);
 	crf.segmentPoints (*out);
 
