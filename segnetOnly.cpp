@@ -19,7 +19,7 @@ int main(int argc, char** argv)
 	Classifier classifier;
 
 	// Load image
-	string rgbfile = "/media/inin/data/tracking dataset/testing/image_02/0006/";
+	string rgbfile = "/home/inin/SegNet/caffe-segnet/examples/segnet/lh-intersection/";
 	char directory[256]; strcpy(directory, rgbfile.c_str()); 
 	struct dirent *de;
 	DIR *dir = opendir(directory);
@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 		double time = double(getTickCount());
 
 		// Load image
-		char base_name[256]; sprintf(base_name,"%06d.png", n);
+		char base_name[256]; sprintf(base_name,"%06d.jpg", n);
 		string rgbfile_ = rgbfile + base_name;
 		cv::Mat img = cv::imread(rgbfile_, 1);
 		CHECK(!img.empty()) << "Unable to decode image " << rgbfile_;
@@ -43,58 +43,47 @@ int main(int argc, char** argv)
 		int rows = 360;
 		int cols = 480;
 
-		// Split image
-		cv::Rect roil(img_cols/2-cols,0,cols,rows);
-		cv::Rect roir(img_cols/2,0,cols,rows);
-		cv::Mat croppedl;
-		cv::Mat croppedr;
-		img(roil).copyTo(croppedl);
-		img(roir).copyTo(croppedr);
-		cv::resize(croppedl, croppedl, Size(cols,rows));
-		cv::resize(croppedr, croppedr, Size(cols,rows));
+		// resize image
+		cv::resize(img, img, Size(cols,rows));
 	
 		// Prediction
-		std::vector<Prediction> predictionsl = classifier.Classify(croppedl);
-		std::vector<Prediction> predictionsr = classifier.Classify(croppedr);
+		std::vector<Prediction> predictions = classifier.Classify(img);
 
 		// Display segnet
 		string colorfile = "/home/inin/SegNet/caffe-segnet/examples/segnet/color.png";
 		cv::Mat color = cv::imread(colorfile, 1);
-		cv::Mat segnetl(croppedl.size(), CV_8UC3, Scalar(0,0,0));
-		cv::Mat segnetr(croppedr.size(), CV_8UC3, Scalar(0,0,0));
+		cv::Mat segnet(img.size(), CV_8UC3, Scalar(0,0,0));
 		for (int i = 0; i < rows; ++i)
 		{	
-			uchar* segnetl_ptr = segnetl.ptr<uchar>(i);
-			uchar* segnetr_ptr = segnetr.ptr<uchar>(i);
+			uchar* segnet_ptr = segnet.ptr<uchar>(i);
 			for (int j = 0; j < cols; ++j)
 			{
-				segnetl_ptr[j*3+0] = predictionsl[i*cols+j].second;
-				segnetl_ptr[j*3+1] = predictionsl[i*cols+j].second;
-				segnetl_ptr[j*3+2] = predictionsl[i*cols+j].second;
-
-				segnetr_ptr[j*3+0] = predictionsr[i*cols+j].second;
-				segnetr_ptr[j*3+1] = predictionsr[i*cols+j].second;
-				segnetr_ptr[j*3+2] = predictionsr[i*cols+j].second;
+				segnet_ptr[j*3+0] = predictions[i*cols+j].second;
+				segnet_ptr[j*3+1] = predictions[i*cols+j].second;
+				segnet_ptr[j*3+2] = predictions[i*cols+j].second;
 			}
 			
 		}
-		cv::LUT(segnetl, color, segnetl);
-		cv::LUT(segnetr, color, segnetr);
-
-		cv::Mat segnet;
-		cv::Mat segimg;
-		cv::hconcat(segnetl, segnetr, segnet);
-		cv::hconcat(croppedl, croppedr, segimg);
+		cv::LUT(segnet, color, segnet);
 
 		// Counting time
 		time = double(getTickCount() - time) / getTickFrequency() * 1000;
 		cout << "cost : " << time << "ms" << endl;
 
 		Mat result;
-		addWeighted(segnet, 0.7, segimg, 1.0, 0, result);
+		addWeighted(segnet, 1.0, img, 0.5, 0, result);
+		imshow("img", img);
 		imshow("segnet", segnet);
 		imshow("addweight", result);
-		waitKey(1);
+
+		waitKey(0);
+		char name[256];
+		//sprintf(name, "segnet_lh/%dimg.bmp", n);
+		//imwrite(name, img);
+		//sprintf(name, "segnet_lh/%dsegnet.bmp", n);
+		//imwrite(name, segnet);
+		//sprintf(name, "segnet_lh/%dresult.bmp", n);
+		//imwrite(name, result);
 	}
 
 	return 0;
