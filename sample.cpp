@@ -106,7 +106,7 @@ int main()
 	double duration;
 	gettimeofday(&t_start, NULL);    
 
-	int count = 1200;   //05-1200 07-1085 0006-50
+	int count = 120;   //05-1200 07-1085 0006-50
 	for (int n = 0; n < count; ++n)
 	{
 		//variables
@@ -773,7 +773,7 @@ int main()
 	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
 	pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(point_cloud_ptr_filtered);
 	viewer->addPointCloud<pcl::PointXYZRGB> (point_cloud_ptr_filtered, rgb, "reconstruction");
-	viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "reconstruction");
+	viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 20, "reconstruction");
 
 	std::cout << BOLDWHITE"The total length:" << BOLDBLUE" " << point_cloud_ptr_filtered->width << BOLDWHITE" points" << RESET" " << std::endl;
 
