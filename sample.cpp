@@ -9,8 +9,8 @@ double base  = 0.537904488; //baseline in meters
 double inlier_threshold = 6.0f; //RANSAC parameter for classifying inlier and outlier
 
 //roi space
-int roix = 15;
-int roiy = 20; //0006-10
+int roix = 30;
+int roiy = 30; //0006-10
 int roiz = 30;
 
 //colormap
@@ -211,9 +211,9 @@ int main()
 
 		/************** 3d CRF mapInference(720ms) *************/
 		
-		pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-		pclut(cloud_anno, tmpcloud);
-		rgbviewer.showCloud(tmpcloud, "rgbviewer");
+		//pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+		//pclut(cloud_anno, tmpcloud);
+		//rgbviewer.showCloud(tmpcloud, "rgbviewer");
 		//while( !rgbviewer.wasStopped() ) {}
 		
 		
@@ -222,9 +222,9 @@ int main()
 		CloudLT::Ptr crfCloud(new CloudLT); compute(cloud, cloud_anno, normal_radius_search, leaf_x, leaf_y, leaf_z, crfCloud);
 		*cloud_anno = *crfCloud;
 		
-		//pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
-		//pclut(crfCloud, tmpcloud_);
-		//rgbviewer.showCloud(tmpcloud_, "crfviewer");
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
+		pclut(crfCloud, tmpcloud_);
+		rgbviewer.showCloud(tmpcloud_, "crfviewer");
 		//while( !rgbviewer.wasStopped() ) {}
 
 		/********************* refine segnet ********************/
@@ -338,9 +338,11 @@ int main()
 				}
 				if (pb_gt==128 && pg_gt==64 && pr_gt==64) 
 				{
-					if (pb_segnet==128 && pg_segnet==64 && pr_segnet==64) fence_s+=1;
-					if (pb_refine==128 && pg_refine==64 && pr_refine==64) fence_r+=1;
-					fence+=1;
+					if (pb_segnet==128 && pg_segnet==64 && pr_segnet==64) 
+						fence_s += 1;
+					if (pb_refine==128 && pg_refine==64 && pr_refine==64) 
+						fence_r += 1;
+					fence += 1;
 				}
 
 				// another
