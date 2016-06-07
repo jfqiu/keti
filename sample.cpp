@@ -10,7 +10,7 @@ double inlier_threshold = 6.0f; //RANSAC parameter for classifying inlier and ou
 
 //roi space
 int roix = 15;
-int roiy = 5; //0006-10
+int roiy = 20; //0006-10
 int roiz = 30;
 
 //colormap
@@ -76,8 +76,8 @@ int main()
 	uv_disparity.SetMinAdjustIntense(20);
 
 	//pcl
-    pcl::visualization::CloudViewer voviewer( "voviewer" );
-    //pcl::visualization::CloudViewer rgbviewer( "rgbviewer" );
+    //pcl::visualization::CloudViewer voviewer( "voviewer" );
+    pcl::visualization::CloudViewer rgbviewer( "rgbviewer" );
     //pcl::visualization::CloudViewer crfviewer( "crfviewer" );
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr vooutput (new pcl::PointCloud<pcl::PointXYZRGB>);
 
@@ -385,12 +385,13 @@ int main()
     				if (fabs(d)>FLT_EPSILON && roi_ptr[u]!=0) //remove moving objects and outside the ROI
 					{
 						//3d points
-						px = recons_ptr[10*u] * pose.val[0][0] + recons_ptr[10*u+1] * pose.val[0][1] + recons_ptr[10*u+2] * pose.val[0][2] + pose.val[0][3];
-						py = recons_ptr[10*u] * pose.val[1][0] + recons_ptr[10*u+1] * pose.val[1][1] + recons_ptr[10*u+2] * pose.val[1][2] + pose.val[1][3];
-						pz = recons_ptr[10*u] * pose.val[2][0] + recons_ptr[10*u+1] * pose.val[2][1] + recons_ptr[10*u+2] * pose.val[2][2] + pose.val[2][3];
-						//px = recons_ptr[10*u];
-						//py = recons_ptr[10*u+1];
-						//pz = recons_ptr[10*u+2];
+						//px = recons_ptr[10*u] * pose.val[0][0] + recons_ptr[10*u+1] * pose.val[0][1] + recons_ptr[10*u+2] * pose.val[0][2] + pose.val[0][3];
+						//py = recons_ptr[10*u] * pose.val[1][0] + recons_ptr[10*u+1] * pose.val[1][1] + recons_ptr[10*u+2] * pose.val[1][2] + pose.val[1][3];
+						//pz = recons_ptr[10*u] * pose.val[2][0] + recons_ptr[10*u+1] * pose.val[2][1] + recons_ptr[10*u+2] * pose.val[2][2] + pose.val[2][3];
+						px = recons_ptr[10*u];
+						py = recons_ptr[10*u+1];
+						pz = recons_ptr[10*u+2];
+
 						pb = rgb_ptr[u*3]; 
 						pg = rgb_ptr[u*3+1]; 
 						pr = rgb_ptr[u*3+2]; 
@@ -441,98 +442,13 @@ int main()
 		float leaf_x = default_leaf_size, leaf_y = default_leaf_size, leaf_z = default_leaf_size;
 		CloudLT::Ptr crfCloud(new CloudLT); compute(cloud, cloud_anno, normal_radius_search, leaf_x, leaf_y, leaf_z, crfCloud);
 		*cloud_anno = *crfCloud;
-
 		
-		pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
-		pclut(crfCloud, tmpcloud_);
+		//pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
+		//pclut(crfCloud, tmpcloud_);
 		//rgbviewer.showCloud(tmpcloud_, "crfviewer");
 		//while( !rgbviewer.wasStopped() ) {}
 
 
-
-//		char pathname[256];
-//		sprintf(pathname, "pcd/pcl%d.ply", n);
-//		pcl::PLYWriter writer;	
-//		tmpcloud_->width = (int) tmpcloud_->points.size();
-//		tmpcloud_->height = 1;
-// 		writer.write (pathname, *tmpcloud_);
-
-/*
-		// get velodyne points
-		input.seekg(0, ios::beg);
-		cv::Mat disp_gt = cv::Mat(disp_sgbm.size(), CV_32F, cv::Scalar(0)); 
-		pcl::PointCloud<PointXYZI>::Ptr points (new pcl::PointCloud<PointXYZI>);
-		for (int i=0; input.good() && !input.eof(); i++) 
-		{
-			PointXYZI point;
-			input.read((char *) &point.x, 3*sizeof(float));
-			input.read((char *) &point.intensity, sizeof(float));
-			//points->push_back(point);
-
-			// calib_velodyne_to_cam0
-			float x = point.x * 7.533745e-03 + point.y * -9.999714e-01 + point.z * -6.166020e-04 - 4.069766e-03; 
-			float y = point.x * 1.480249e-02 + point.y * 7.280733e-04  + point.z * -9.998902e-01 - 7.631618e-02;
-			float z = point.x * 9.998621e-01 + point.y * 7.523790e-03 + point.z * 1.480755e-02 - 2.717806e-01;
-			//7.533745e-03 -9.999714e-01 -6.166020e-04 -4.069766e-03 
-			//1.480249e-02 7.280733e-04 -9.998902e-01 -7.631618e-02
-			//9.998621e-01 7.523790e-03 1.480755e-02 -2.717806e-01
-
-			// calib_velodyne_to_cam0_to_cam0plane
-			int u = (x * 7.070912000000e+02 / z + 6.018873000000e+02);
-			int v = (y * 7.070912000000e+02 / z + 1.831104000000e+02);
-			//7.070912000000e+02 0.000000000000e+00 6.018873000000e+02 0.000000000000e+00
-		    //0.000000000000e+00 7.070912000000e+02 1.831104000000e+02 0.000000000000e+00
-		    //0.000000000000e+00 0.000000000000e+00 1.000000000000e+00 0.000000000000e+00
-			if (fabs(x)>roix || fabs(y)>roiy || fabs(z)>roiz) continue;
-			if (u>=0 && u<disp_sgbm.cols && v>=0 && v<disp_sgbm.rows)
-			{
-				float* disp_ptr = disp_gt.ptr<float>(v);
-				disp_ptr[u] = z;
-			}
-		}
-
-	    // projection_cam1_to_cam0
-		cv::Mat disp_calib = cv::Mat(disp_sgbm.size(), CV_32F, cv::Scalar(0)); 
-	    for (int i = 0; i<disp_sgbm.rows; i++)
-	    {
-	        const float* recons_ptr = key_xyz.ptr<float>(i);
-	        for (int j = 0; j<disp_sgbm.cols; j++)
-	        {
-	        	float px = recons_ptr[10*j] + 0.06;
-	        	float py = recons_ptr[10*j+1];
-	        	float pz = recons_ptr[10*j+2];
-				int u = (px * 7.070912000000e+02 / pz + 6.018873000000e+02);
-				int v = (py * 7.070912000000e+02 / pz + 1.831104000000e+02);
-				if (fabs(px)>roix || fabs(py)>roiy || fabs(pz)>roiz) continue;
-
-				if (u>=0 && u<disp_sgbm.cols && v>=0 && v<disp_sgbm.rows)
-				{
-					float* disp_calib_ptr = disp_calib.ptr<float>(v);
-					disp_calib_ptr[u] = pz;
-				}
-	        }
-	    }
-
-	    // correctness evaluation
-	    double correct = 0.0;
-	    double sum = 0.0;
-	    for (int i = 0; i < disp_sgbm.rows; i++)
-	    {
-			float* disp_calib_ptr = disp_calib.ptr<float>(i);
-	        float* disp_gt_ptr = disp_gt.ptr<float>(i);
-	        for (int j = 0; j < disp_sgbm.cols; j++)
-	        {
-	            float depth = disp_calib_ptr[j];
-	            float depth_gt = disp_gt_ptr[j];
-
-	            if (fabs(depth-depth_gt) < 32.0) 
-	            	correct += 1.0;
-	            sum += 1.0;
-	        }
-	    }
-	    cv::imshow("disp_gt", disp_gt);
-		std::cout << BOLDYELLOW"Reconstruction Evaluation[" << n+1 << "]" << BOLDBLUE" (" << correct << "/" << sum << ")" << correct/sum << RESET" " << std::endl;
-*/
 		input.close();
 
 		/********************* refine segnet ********************/
@@ -540,16 +456,27 @@ int main()
 		for (size_t j = 0; j < cloud_anno->points.size(); j++)
 		{
 			Matrix_ poseinv = Matrix_::inv(pose);
-			double x = (-cloud_anno->points[j].x) * poseinv.val[0][0] + (-cloud_anno->points[j].y) * poseinv.val[0][1] + cloud_anno->points[j].z * poseinv.val[0][2] + poseinv.val[0][3];
-			double y = (-cloud_anno->points[j].x) * poseinv.val[1][0] + (-cloud_anno->points[j].y) * poseinv.val[1][1] + cloud_anno->points[j].z * poseinv.val[1][2] + poseinv.val[1][3];
-			double z = (-cloud_anno->points[j].x) * poseinv.val[2][0] + (-cloud_anno->points[j].y) * poseinv.val[2][1] + cloud_anno->points[j].z * poseinv.val[2][2] + poseinv.val[2][3];
+			//double x = (-cloud_anno->points[j].x) * poseinv.val[0][0] + (-cloud_anno->points[j].y) * poseinv.val[0][1] + cloud_anno->points[j].z * poseinv.val[0][2] + poseinv.val[0][3];
+			//double y = (-cloud_anno->points[j].x) * poseinv.val[1][0] + (-cloud_anno->points[j].y) * poseinv.val[1][1] + cloud_anno->points[j].z * poseinv.val[1][2] + poseinv.val[1][3];
+			//double z = (-cloud_anno->points[j].x) * poseinv.val[2][0] + (-cloud_anno->points[j].y) * poseinv.val[2][1] + cloud_anno->points[j].z * poseinv.val[2][2] + poseinv.val[2][3];
+			double x = -cloud_anno->points[j].x;
+			double y = -cloud_anno->points[j].y;
+			double z =  cloud_anno->points[j].z;
 
 			int u = (x * f / z + c_u);
 			int v = (y * f / z + c_v);
-			//int u = (-cloud_anno->points[j].x * f / cloud_anno->points[j].z + c_u);
-			//int v = (-cloud_anno->points[j].y * f / cloud_anno->points[j].z + c_v);
+
+			//int u = x * 707.0912 + z * 601.8873;
+			//int v = x * 707.0912 + y * 183.1104;
+
+			//7.215377e+02 0.000000e+00 6.095593e+02 4.485728e+01
+			//0.000000e+00 7.215377e+02 1.728540e+02 2.163791e-01 
+			//0.000000e+00 0.000000e+00 1.000000e+00 2.745884e-03
+
 			u -= (img_cols/2 - cropCols);
 			v -= (img_rows - cropRows);
+			//v -= 100;
+
 			if (u>=0 && u<960 && v>=0 && v<360)
 			{
 				uchar* imgptr = img.ptr<uchar>(v);
@@ -558,7 +485,38 @@ int main()
 				imgptr[u*3+2] = cloud_anno->points[j].label;
 			}
 		}
+		//std::cout << BOLDYELLOW"Offset: " << img_rows - cropRows << RESET"" << std::endl;
 
+		// Semantic Evaluation
+		for (int i=0; i<img.rows; i++)
+		{
+			uchar* imgptr = img.ptr<uchar>(i);
+			for (int j=0; j<img.cols; j++)
+			{
+				int label = 0, label_gt = 0;
+				label_gt = imgptr[j*3];
+				predictionsL[i*cropCols+j].second; 
+			}
+		}
+
+
+		cv::LUT(img, colormap, img);
+		for (int i=0;i<img.rows;i++)
+		{
+			for (int j=0;j<img.cols;j++)
+			{
+				uchar* imgptr = img.ptr<uchar>(i);
+				if (imgptr[j*3]==imgptr[j*3+1]&& imgptr[j*3+1]==imgptr[j*3+2])
+				{	
+					imgptr[j*3] = 0;
+					imgptr[j*3+1] = 0;
+					imgptr[j*3+2] = 0;
+				}
+			}
+		}
+		cv::imshow("img",img);
+
+/*
 		// semantic cues remove moving error
 		cv::imshow("key_moving_mask_before", key_moving_mask);
 		key_moving_mask.copyTo(key_moving_mask_before);
@@ -682,7 +640,7 @@ int main()
 		cv::imwrite(savepic, key_moving_mask_before);
 		sprintf(savepic, "png/refine_moving%d.bmp", n);
 		cv::imwrite(savepic, key_moving_mask);
-
+*/
 		/********************* hash update  ********************/
 		for (size_t j = 0; j < cloud_anno->points.size(); j++)
 		{
@@ -735,7 +693,7 @@ int main()
 		vopoint.b = 0;
 		vooutput->push_back(vopoint);
 
-		voviewer.showCloud(vooutput);
+		//voviewer.showCloud(vooutput);
 		
 		std::cout << BOLDGREEN"Updated[" << n+1 << "]" << BOLDBLUE" (" << keyFrameT << ")" << RESET" " << std::endl;
 		std::cout << BOLDMAGENTA"pose: " << pose.val[0][3] << "," << pose.val[1][3] << "," << pose.val[2][3] << std::endl;
@@ -752,14 +710,14 @@ int main()
 
 	std::cout << BOLDYELLOW"Waiting to Reconstruction..." << RESET" " << std::endl;
 	
-	//while( !rgbviewer.wasStopped() )
+	while( !rgbviewer.wasStopped() )
     {
         
     }
 
 	vooutput->width = (int) vooutput->points.size();
 	vooutput->height = 1;
-	while( !voviewer.wasStopped() )
+	//while( !voviewer.wasStopped() )
     {
         
     }
