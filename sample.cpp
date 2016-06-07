@@ -1,11 +1,7 @@
 #include "utils.h"
 
+#include <pcl/io/png_io.h>
 //stereo params
-//double f     = 721.5377; //focal length in pixels
-//double c_u   = 609.5593;  //principal point (u-coordinate) in pixels
-//double c_v   = 172.8540;  //principal point (v-coordinate) in pixels
-//double base  = 0.537150588; //baseline in meters
-
 double f     = 707.0912; //focal length in pixels
 double c_u   = 601.8873;  //principal point (u-coordinate) in pixels
 double c_v   = 183.1104;  //principal point (v-coordinate) in pixels
@@ -13,7 +9,7 @@ double base  = 0.537904488; //baseline in meters
 double inlier_threshold = 6.0f; //RANSAC parameter for classifying inlier and outlier
 
 //roi space
-int roix = 10;
+int roix = 15;
 int roiy = 5; //0006-10
 int roiz = 30;
 
@@ -30,6 +26,7 @@ int cropCols2 = 960;
 //string rgb_dirR = "/media/inin/data/tracking dataset/testing/image_03/0006/";
 string rgb_dirL = "/media/inin/data/sequences/05/image_2/";
 string rgb_dirR = "/media/inin/data/sequences/05/image_3/";
+string velodyne_dir = "/media/inin/data/dataset/sequences/05/velodyne/";
 //00(segnet-bad) 05(good-xiaodao) 07(confuse-xiaodao) 12(gaosu) 13(xiaodao) 16(kuandao) 18(segnet-bad) 19(segnet-confuse) 21(gaosu)
 
 //update voxel
@@ -37,8 +34,8 @@ const int gridScale = 4; //05-2 0006-10
 const int gridWidth = gridScale*200; //05-200 0006-80
 const int gridHeight = gridScale*15; //05-15 0006-5
 
-//crf params
-float  default_leaf_size = 0.05; //0.05f
+//crf param
+float  default_leaf_size = 0.02; //0.05f 0.03f is also valid
 double default_feature_threshold = 5.0; //5.0
 double default_normal_radius_search = 0.5; //0.03
 
@@ -68,6 +65,7 @@ int main()
 	Classifier classifier; //load network
 	cv::Mat colormap = cv::imread(colorfile, 1); //look-up table
 	Matrix_ pose = Matrix_::eye(4); //visual odometry
+	Matrix_ gtpose_ = Matrix_::eye(4); //visual odometry
 	//int count = numFiles(rgb_dirL); //frame list
 
 	//initialize the parameters of UVDisparity
@@ -78,13 +76,13 @@ int main()
 	uv_disparity.SetMinAdjustIntense(20);
 
 	//pcl
-    //pcl::visualization::CloudViewer voviewer( "voviewer" );
+    pcl::visualization::CloudViewer voviewer( "voviewer" );
     //pcl::visualization::CloudViewer rgbviewer( "rgbviewer" );
     //pcl::visualization::CloudViewer crfviewer( "crfviewer" );
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr vooutput (new pcl::PointCloud<pcl::PointXYZRGB>);
 
 	//fusion params
-	cv::Mat key_moving_mask, key_roi_mask, key_xyz, key_disp_sgbm, key_img_rgb;
+	cv::Mat key_moving_mask, key_roi_mask, key_xyz, key_disp_sgbm, key_img_rgb, key_moving_mask_before;
 	std::vector<Prediction> key_preL;
 	std::vector<Prediction> key_preR;
 	std::vector<Fusion> vec;	
@@ -118,14 +116,25 @@ int main()
 		std::vector<Prediction> predictionsR;
 
 		//read consecutive stereo images for 3d reconstruction
-		char base_name_p[256], base_name_c[256];
+		char base_name_p[256], base_name_c[256], base_name_v[256];
 		sprintf(base_name_p, "%06d.png", n);
 		sprintf(base_name_c, "%06d.png", n+1);
+		sprintf(base_name_v, "%06d.bin", n+1);
+
 		string imgpath_lp = rgb_dirL + base_name_p; string imgpath_rp = rgb_dirR + base_name_p;
 		string imgpath_lc = rgb_dirL + base_name_c; string imgpath_rc = rgb_dirR + base_name_c;
+		string velodyne_infile = velodyne_dir + base_name_v;
 		img_lc = cv::imread(imgpath_lc,0); img_lp = cv::imread(imgpath_lp,0);
 		img_rc = cv::imread(imgpath_rc,0); img_rp = cv::imread(imgpath_rp,0);
 		img_rgb = cv::imread(imgpath_lc,1);
+
+		// load point cloud
+		fstream input(velodyne_infile.c_str(), ios::in | ios::binary);
+		if (!input.good()) {
+			cerr << "Could not read velodyne file: " << velodyne_infile << endl;
+			exit(EXIT_FAILURE);
+		}
+
 		int img_rows = img_lc.rows;
 		int img_cols = img_lc.cols;
 	
@@ -176,8 +185,9 @@ int main()
 			for (int32_t i=0; i<4; ++i)
 				for (int32_t j=0; j<4; ++j)
 					gt_.val[i][j] = gtpose.at<double>(i,j);
-			pose = gt_;
-			
+			//pose = gt_;
+			gtpose_ = gt_;
+
 			success = true;
 		}
 		delete quadmatcher;
@@ -187,6 +197,10 @@ int main()
 		cv::imshow("segnet", segnet);
 		cv::imshow("disparity", disp_show_sgbm);
 		if (!success) continue;
+
+		//char path[255];
+		//sprintf(path,"pic/segnet%d.jpg",n);
+		//cv::imwrite(path,segnet);
 
 		/****************** Fusion ******************/
 		//add new item
@@ -254,7 +268,7 @@ int main()
 					for (int j = 0; j < img_cols; j++)
 					{
 						//other frame validation
-		    				const short d = temp_depth_ptr[j];
+		    			const short d = temp_depth_ptr[j];
 						const uchar r = temp_roi_ptr[j];
 						if (fabs(d)<=FLT_EPSILON || r==0) continue;
 
@@ -307,7 +321,8 @@ int main()
 			}
 			/*
 			// semantic cues remove moving error
-			//cv::imshow("key_moving_mask", key_moving_mask);
+			cv::imshow("key_moving_mask_before", key_moving_mask);
+			key_moving_mask_before = key_moving_mask;
 			int cues = 0;
 			for (int v = 0; v < img_rows; v++)
 			{
@@ -326,8 +341,8 @@ int main()
 					}
 					else key_moving_ptr[u] = 0;
 				}
-			}
-			*/
+			}*/
+			
 			// dilate
 			//int dilate_type = MORPH_RECT;
 			//int dilate_ele_size = 3;
@@ -338,17 +353,12 @@ int main()
 			keyFrameT ++;
 			key_pose = Matrix_::eye(4);
 		}
-		else continue;
-/*
-		//save pictures
-		char savepic[256];
-		sprintf(savepic, "rgb%d.jpg", n);
-		cv::imwrite(savepic, img_rgb);
-		sprintf(savepic, "disparity%d.jpg", n);
-		cv::imwrite(savepic, disp_show_sgbm);
-		sprintf(savepic, "segnet%d.jpg", n);
-		cv::imwrite(savepic, segnet);
-*/
+		else 
+		{
+			input.close();
+			continue;
+		}
+
 		/**************** Integration ***************/
 		//pcl
 		float px, py, pz;
@@ -358,8 +368,6 @@ int main()
 		pcl::PointXYZRGBL pointRGBL;
 		CloudT::Ptr cloud(new CloudT);
 		CloudLT::Ptr cloud_anno(new CloudLT);   
-
-		CloudT::Ptr cloud_motion(new CloudT); 
 		for (int v = 0; v < img_rows; ++v)
 		{
 			const uchar* moving_ptr = key_moving_mask.ptr<uchar>(v);
@@ -373,12 +381,16 @@ int main()
 				if (v>=img_rows-cropRows && v<img_rows && u>=img_cols/2-cropCols && u<img_cols/2+cropCols)
 				{
     				short d = disparity_ptr[u];
-    				if (fabs(d)>FLT_EPSILON && roi_ptr[u]!=0 && moving_ptr[u]!=255) //remove moving objects and outside the ROI
+    				//if (fabs(d)>FLT_EPSILON && roi_ptr[u]!=0 && moving_ptr[u]!=255) //remove moving objects and outside the ROI
+    				if (fabs(d)>FLT_EPSILON && roi_ptr[u]!=0) //remove moving objects and outside the ROI
 					{
 						//3d points
 						px = recons_ptr[10*u] * pose.val[0][0] + recons_ptr[10*u+1] * pose.val[0][1] + recons_ptr[10*u+2] * pose.val[0][2] + pose.val[0][3];
 						py = recons_ptr[10*u] * pose.val[1][0] + recons_ptr[10*u+1] * pose.val[1][1] + recons_ptr[10*u+2] * pose.val[1][2] + pose.val[1][3];
 						pz = recons_ptr[10*u] * pose.val[2][0] + recons_ptr[10*u+1] * pose.val[2][1] + recons_ptr[10*u+2] * pose.val[2][2] + pose.val[2][3];
+						//px = recons_ptr[10*u];
+						//py = recons_ptr[10*u+1];
+						//pz = recons_ptr[10*u+2];
 						pb = rgb_ptr[u*3]; 
 						pg = rgb_ptr[u*3+1]; 
 						pr = rgb_ptr[u*3+2]; 
@@ -411,22 +423,10 @@ int main()
 						cloud->points.push_back(pointRGB);
 						cloud_anno->points.push_back(pointRGBL);
 
-						//motion
-						pointRGB.r = moving_ptr[u];
-						pointRGB.g = pointRGBL.label;
-						cloud_motion->points.push_back(pointRGB);
 					}
 				}
 			}
 		} 
-
-		// Create the filtering object
-		CloudT::Ptr cloud_motion_filtered(new CloudT);  
-		pcl::VoxelGrid<pcl::PointXYZRGB> sor;
-		sor.setInputCloud (cloud_motion);
-		sor.setLeafSize (default_leaf_size, default_leaf_size, default_leaf_size);
-		sor.filter (*cloud_motion_filtered);
-
 
 		/************** 3d CRF mapInference(720ms) *************/
 		/*
@@ -441,20 +441,251 @@ int main()
 		float leaf_x = default_leaf_size, leaf_y = default_leaf_size, leaf_z = default_leaf_size;
 		CloudLT::Ptr crfCloud(new CloudLT); compute(cloud, cloud_anno, normal_radius_search, leaf_x, leaf_y, leaf_z, crfCloud);
 		*cloud_anno = *crfCloud;
-		
 
 		
-		//pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
-		//pclut(crfCloud, tmpcloud_);
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
+		pclut(crfCloud, tmpcloud_);
 		//rgbviewer.showCloud(tmpcloud_, "crfviewer");
 		//while( !rgbviewer.wasStopped() ) {}
-		
+
+
+
+//		char pathname[256];
+//		sprintf(pathname, "pcd/pcl%d.ply", n);
+//		pcl::PLYWriter writer;	
+//		tmpcloud_->width = (int) tmpcloud_->points.size();
+//		tmpcloud_->height = 1;
+// 		writer.write (pathname, *tmpcloud_);
+
+/*
+		// get velodyne points
+		input.seekg(0, ios::beg);
+		cv::Mat disp_gt = cv::Mat(disp_sgbm.size(), CV_32F, cv::Scalar(0)); 
+		pcl::PointCloud<PointXYZI>::Ptr points (new pcl::PointCloud<PointXYZI>);
+		for (int i=0; input.good() && !input.eof(); i++) 
+		{
+			PointXYZI point;
+			input.read((char *) &point.x, 3*sizeof(float));
+			input.read((char *) &point.intensity, sizeof(float));
+			//points->push_back(point);
+
+			// calib_velodyne_to_cam0
+			float x = point.x * 7.533745e-03 + point.y * -9.999714e-01 + point.z * -6.166020e-04 - 4.069766e-03; 
+			float y = point.x * 1.480249e-02 + point.y * 7.280733e-04  + point.z * -9.998902e-01 - 7.631618e-02;
+			float z = point.x * 9.998621e-01 + point.y * 7.523790e-03 + point.z * 1.480755e-02 - 2.717806e-01;
+			//7.533745e-03 -9.999714e-01 -6.166020e-04 -4.069766e-03 
+			//1.480249e-02 7.280733e-04 -9.998902e-01 -7.631618e-02
+			//9.998621e-01 7.523790e-03 1.480755e-02 -2.717806e-01
+
+			// calib_velodyne_to_cam0_to_cam0plane
+			int u = (x * 7.070912000000e+02 / z + 6.018873000000e+02);
+			int v = (y * 7.070912000000e+02 / z + 1.831104000000e+02);
+			//7.070912000000e+02 0.000000000000e+00 6.018873000000e+02 0.000000000000e+00
+		    //0.000000000000e+00 7.070912000000e+02 1.831104000000e+02 0.000000000000e+00
+		    //0.000000000000e+00 0.000000000000e+00 1.000000000000e+00 0.000000000000e+00
+			if (fabs(x)>roix || fabs(y)>roiy || fabs(z)>roiz) continue;
+			if (u>=0 && u<disp_sgbm.cols && v>=0 && v<disp_sgbm.rows)
+			{
+				float* disp_ptr = disp_gt.ptr<float>(v);
+				disp_ptr[u] = z;
+			}
+		}
+
+	    // projection_cam1_to_cam0
+		cv::Mat disp_calib = cv::Mat(disp_sgbm.size(), CV_32F, cv::Scalar(0)); 
+	    for (int i = 0; i<disp_sgbm.rows; i++)
+	    {
+	        const float* recons_ptr = key_xyz.ptr<float>(i);
+	        for (int j = 0; j<disp_sgbm.cols; j++)
+	        {
+	        	float px = recons_ptr[10*j] + 0.06;
+	        	float py = recons_ptr[10*j+1];
+	        	float pz = recons_ptr[10*j+2];
+				int u = (px * 7.070912000000e+02 / pz + 6.018873000000e+02);
+				int v = (py * 7.070912000000e+02 / pz + 1.831104000000e+02);
+				if (fabs(px)>roix || fabs(py)>roiy || fabs(pz)>roiz) continue;
+
+				if (u>=0 && u<disp_sgbm.cols && v>=0 && v<disp_sgbm.rows)
+				{
+					float* disp_calib_ptr = disp_calib.ptr<float>(v);
+					disp_calib_ptr[u] = pz;
+				}
+	        }
+	    }
+
+	    // correctness evaluation
+	    double correct = 0.0;
+	    double sum = 0.0;
+	    for (int i = 0; i < disp_sgbm.rows; i++)
+	    {
+			float* disp_calib_ptr = disp_calib.ptr<float>(i);
+	        float* disp_gt_ptr = disp_gt.ptr<float>(i);
+	        for (int j = 0; j < disp_sgbm.cols; j++)
+	        {
+	            float depth = disp_calib_ptr[j];
+	            float depth_gt = disp_gt_ptr[j];
+
+	            if (fabs(depth-depth_gt) < 32.0) 
+	            	correct += 1.0;
+	            sum += 1.0;
+	        }
+	    }
+	    cv::imshow("disp_gt", disp_gt);
+		std::cout << BOLDYELLOW"Reconstruction Evaluation[" << n+1 << "]" << BOLDBLUE" (" << correct << "/" << sum << ")" << correct/sum << RESET" " << std::endl;
+*/
+		input.close();
+
+		/********************* refine segnet ********************/
+		cv::Mat img(360,960,CV_8UC3,cv::Scalar(0,0,0));
+		for (size_t j = 0; j < cloud_anno->points.size(); j++)
+		{
+			Matrix_ poseinv = Matrix_::inv(pose);
+			double x = (-cloud_anno->points[j].x) * poseinv.val[0][0] + (-cloud_anno->points[j].y) * poseinv.val[0][1] + cloud_anno->points[j].z * poseinv.val[0][2] + poseinv.val[0][3];
+			double y = (-cloud_anno->points[j].x) * poseinv.val[1][0] + (-cloud_anno->points[j].y) * poseinv.val[1][1] + cloud_anno->points[j].z * poseinv.val[1][2] + poseinv.val[1][3];
+			double z = (-cloud_anno->points[j].x) * poseinv.val[2][0] + (-cloud_anno->points[j].y) * poseinv.val[2][1] + cloud_anno->points[j].z * poseinv.val[2][2] + poseinv.val[2][3];
+
+			int u = (x * f / z + c_u);
+			int v = (y * f / z + c_v);
+			//int u = (-cloud_anno->points[j].x * f / cloud_anno->points[j].z + c_u);
+			//int v = (-cloud_anno->points[j].y * f / cloud_anno->points[j].z + c_v);
+			u -= (img_cols/2 - cropCols);
+			v -= (img_rows - cropRows);
+			if (u>=0 && u<960 && v>=0 && v<360)
+			{
+				uchar* imgptr = img.ptr<uchar>(v);
+				imgptr[u*3] = cloud_anno->points[j].label;
+				imgptr[u*3+1] = cloud_anno->points[j].label;
+				imgptr[u*3+2] = cloud_anno->points[j].label;
+			}
+		}
+
+		// semantic cues remove moving error
+		cv::imshow("key_moving_mask_before", key_moving_mask);
+		key_moving_mask.copyTo(key_moving_mask_before);
+		int cues = 0;
+		for (int v = 0; v < img_rows; v++)
+		{
+			uchar* key_moving_ptr = key_moving_mask.ptr<uchar>(v);
+			for (int u = 0; u < img_cols; u++)
+			{
+				if (v>=img_rows-cropRows && v<img_rows && u>=img_cols/2-cropCols && u<img_cols/2+cropCols)
+				{
+					int i = v-(img_rows-cropRows);
+					int j = u-(img_cols/2-cropCols);
+					//get semantic cues
+					uchar* imgptr = img.ptr<uchar>(i);
+					cues = imgptr[3*j];
+					//validation
+					if (key_moving_ptr[u]==255 && cues<9) key_moving_ptr[u] = 0;
+				}
+				else key_moving_ptr[u] = 0;
+			}
+		}
+		cv::imshow("key_moving_mask_refine", key_moving_mask);
+		// refine semantic
+		cv::LUT(img, colormap, img);
+		for (int i=0;i<360;i++)
+		{
+			for (int j=0;j<960;j++)
+			{
+				uchar* imgptr = img.ptr<uchar>(i);
+				if (imgptr[j*3]==imgptr[j*3+1]&& imgptr[j*3+1]==imgptr[j*3+2])
+				{	
+					imgptr[j*3] = 0;
+					imgptr[j*3+1] = 0;
+					imgptr[j*3+2] = 0;
+				}
+			}
+		}
+		cv::imshow("img",img);
+		//cv::waitKey(0);
+
+		// refine_semantic_moving
+		cv::Mat img_moving;
+		img.copyTo(img_moving);
+		for (int v = 0; v < img_rows; v++)
+		{
+			uchar* key_moving_ptr = key_moving_mask.ptr<uchar>(v);
+			for (int u = 0; u < img_cols; u++)
+			{
+				if (v>=img_rows-cropRows && v<img_rows && u>=img_cols/2-cropCols && u<img_cols/2+cropCols)
+				{
+					int i = v-(img_rows-cropRows);
+					int j = u-(img_cols/2-cropCols);
+					//get semantic cues
+					uchar* img_moving_ptr = img_moving.ptr<uchar>(i);
+					//validation
+					//if (key_moving_ptr[u]==255) 
+					if ( (img_moving_ptr[j*3]==128 && img_moving_ptr[j*3+1]==0 && img_moving_ptr[j*3+2]==64) ||
+						 (img_moving_ptr[j*3]==0 && img_moving_ptr[j*3+1]==64 && img_moving_ptr[j*3+2]==64) ||
+						 (img_moving_ptr[j*3]==192 && img_moving_ptr[j*3+1]==128 && img_moving_ptr[j*3+2]==0) )
+					{
+						img_moving_ptr[j*3] = 0;
+						img_moving_ptr[j*3+1] = 0;
+						img_moving_ptr[j*3+2] = 0;
+					}
+				}
+			}
+		}
+		cv::imshow("img_moving",img_moving);
+
+
+		//save pictures
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
+		for (size_t j = 0; j < cloud_anno->points.size(); j++)
+		{
+			Matrix_ poseinv = Matrix_::inv(pose);
+			double x = -cloud_anno->points[j].x * poseinv.val[0][0] + -cloud_anno->points[j].y * poseinv.val[0][1] + cloud_anno->points[j].z * poseinv.val[0][2] + poseinv.val[0][3];
+			double y = -cloud_anno->points[j].x * poseinv.val[1][0] + -cloud_anno->points[j].y * poseinv.val[1][1] + cloud_anno->points[j].z * poseinv.val[1][2] + poseinv.val[1][3];
+			double z = -cloud_anno->points[j].x * poseinv.val[2][0] + -cloud_anno->points[j].y * poseinv.val[2][1] + cloud_anno->points[j].z * poseinv.val[2][2] + poseinv.val[2][3];
+
+			if ( (cloud_anno->points[j].b==128 && cloud_anno->points[j].g==0 && cloud_anno->points[j].r==64) ||
+				 (cloud_anno->points[j].b==0 && cloud_anno->points[j].g==64 && cloud_anno->points[j].r==64) ||
+				 (cloud_anno->points[j].b==192 && cloud_anno->points[j].g==128 && cloud_anno->points[j].r==0) )
+				continue;	
+			else
+			{
+				pcl::PointXYZRGB pointRGB;
+				pointRGB.x = x;
+				pointRGB.y = y;
+				pointRGB.z = z;
+				pointRGB.r = cloud_anno->points[j].r;
+				pointRGB.g = cloud_anno->points[j].g;
+				pointRGB.b = cloud_anno->points[j].b;
+				cloud_->points.push_back(pointRGB);
+			}
+
+		}
+
+		char pcdname[256];
+		cloud->width = (int) cloud->points.size();
+		cloud->height = 1;
+		cloud_->width = (int) cloud_->points.size();
+		cloud_->height = 1;
+		sprintf(pcdname, "png/3dReconstrcution%d.pcd", n);
+		pcl::io::savePCDFileASCII (pcdname, *cloud);
+		sprintf(pcdname, "png/3dSemanrtic%d.pcd", n);
+		pcl::io::savePCDFileASCII (pcdname, *cloud_);
+
+		char savepic[256];
+		sprintf(savepic, "png/rgb%d.bmp", n);
+		cv::imwrite(savepic, img_rgb);
+		sprintf(savepic, "png/disparity%d.bmp", n);
+		cv::imwrite(savepic, disp_show_sgbm);
+		sprintf(savepic, "png/segnet%d.bmp", n);
+		cv::imwrite(savepic, segnet);
+		sprintf(savepic, "png/refine%d.bmp", n);
+		cv::imwrite(savepic, img);
+		sprintf(savepic, "png/refinemovingsemantic%d.bmp", n);
+		cv::imwrite(savepic, img_moving);
+		sprintf(savepic, "png/before_moving%d.bmp", n);
+		cv::imwrite(savepic, key_moving_mask_before);
+		sprintf(savepic, "png/refine_moving%d.bmp", n);
+		cv::imwrite(savepic, key_moving_mask);
 
 		/********************* hash update  ********************/
 		for (size_t j = 0; j < cloud_anno->points.size(); j++)
 		{
-			//remove motion pixels
-			if ( cloud_motion_filtered->points[j].r==255 && cloud_anno->points[j].label) continue;
 
 			//scalable
 			int key_x = int( cloud_anno->points[j].x * gridScale ) + 280*gridScale; //05-280 0006-280
@@ -491,14 +722,24 @@ int main()
 		vopoint.x = pose.val[0][3];
 		vopoint.y = pose.val[1][3];
 		vopoint.z = pose.val[2][3];
+		vopoint.r = 0;
+		vopoint.g = 0;
+		vopoint.b = 255;
+		vooutput->push_back(vopoint);
+
+		vopoint.x = gtpose_.val[0][3];
+		vopoint.y = gtpose_.val[1][3];
+		vopoint.z = gtpose_.val[2][3];
 		vopoint.r = 255;
 		vopoint.g = 0;
 		vopoint.b = 0;
 		vooutput->push_back(vopoint);
-		//voviewer.showCloud(vooutput);
+
+		voviewer.showCloud(vooutput);
 		
 		std::cout << BOLDGREEN"Updated[" << n+1 << "]" << BOLDBLUE" (" << keyFrameT << ")" << RESET" " << std::endl;
 		std::cout << BOLDMAGENTA"pose: " << pose.val[0][3] << "," << pose.val[1][3] << "," << pose.val[2][3] << std::endl;
+		std::cout << BOLDMAGENTA"gtpose_: " << gtpose_.val[0][3] << "," << gtpose_.val[1][3] << "," << gtpose_.val[2][3] << std::endl;
 		//std::cout << BOLDYELLOW"Pointcloud: " << pointCloudNum << RESET"" << std::endl;
 	}
  
@@ -515,15 +756,14 @@ int main()
     {
         
     }
-	
-	//while( !voviewer.wasStopped() )
+
+	vooutput->width = (int) vooutput->points.size();
+	vooutput->height = 1;
+	while( !voviewer.wasStopped() )
     {
         
     }
-
-
-
-
+	pcl::io::savePCDFileASCII ("voresult.pcd", *vooutput);
 
 
 
@@ -583,6 +823,7 @@ int main()
 		for (int k = 1; k < 12; k++)
 			if (hash[i].label[maxIndex] <= hash[i].label[k])
 				maxIndex = k;
+		if (maxIndex >= 9) continue;
 		switch (maxIndex)
 		{
 			//case 0: pb=128; pg=128; pr=128; break; //sky
@@ -620,7 +861,7 @@ int main()
 	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
 	pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(point_cloud_ptr_filtered);
 	viewer->addPointCloud<pcl::PointXYZRGB> (point_cloud_ptr_filtered, rgb, "reconstruction");
-	viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "reconstruction");
+	viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 7, "reconstruction");
 
 	std::cout << BOLDWHITE"The total length:" << BOLDBLUE" " << point_cloud_ptr_filtered->width << BOLDWHITE" points" << RESET" " << std::endl;
 
