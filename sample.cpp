@@ -62,7 +62,7 @@ int main()
 	Matrix_ key_pose = Matrix_::eye(4);
 	size_t keyFrameT = 0;
 	//size_t fusionLen = 1; double translationT = 3; double rotationT = 5; double RT_Threshold = 5;//translation 10_m  rotation 5_degree
-	size_t fusionLen = 1; double translationT = 31; double rotationT = 1; double RT_Threshold = 1;//translation 10_m  rotation 5_degree
+	size_t fusionLen = 1; double translationT = 1; double rotationT = 1; double RT_Threshold = 1;//translation 10_m  rotation 5_degree
 
 	//pcl
     pcl::visualization::CloudViewer rgbviewer( "rgbviewer" );
@@ -428,8 +428,8 @@ int main()
 
 		/************** 3d CRF mapInference(720ms) *************/
 		
-		//pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-		//pclut(cloud_anno, tmpcloud);
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+		pclut(cloud_anno, tmpcloud);
 		//rgbviewer.showCloud(tmpcloud, "rgbviewer");
 		//while( !rgbviewer.wasStopped() ) {}
 		
@@ -441,7 +441,7 @@ int main()
 		
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmpcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
 		pclut(crfCloud, tmpcloud_);
-		rgbviewer.showCloud(tmpcloud_, "crfviewer");
+		//rgbviewer.showCloud(tmpcloud_, "crfviewer");
 		//while( !rgbviewer.wasStopped() ) {}
 
 		/****************3d evaluation******************/
@@ -702,7 +702,7 @@ int main()
 		std::cout << BOLDYELLOW"Global Semantic Accuracy: " << sum_s/sum << "," << sum_r/sum << std::endl << RESET"" << std::endl;
 
 
-
+/*
 		// refine_semantic_moving
 		cv::Mat img_moving;
 		img.copyTo(img_moving);
@@ -730,17 +730,7 @@ int main()
 				}
 			}
 		}
-		cv::imshow("img_moving",img_moving);
-
-		imshow("projection", projection);
-		imshow("gt", gt);
-		imshow("result", result);
-
-		cv::imshow("img",img);
-		cv::imshow("segnet", segnet);
-		cv::imshow("gt", crop_gt);
-		cv::waitKey(1);
-
+*/
 		//save pictures
 		pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
 		for (size_t j = 0; j < cloud_anno->points.size(); j++)
@@ -767,6 +757,22 @@ int main()
 			}
 
 		}
+
+		imshow("projection", projection);
+		imshow("gt", gt);
+		imshow("result", result);
+
+		cv::imshow("img",img);
+		cv::imshow("segnet", segnet);
+		cv::imshow("gt", crop_gt);
+		cv::waitKey(1);
+
+		
+		char pcdname[256];
+		sprintf(pcdname, "png/3dBeforeSemantic%d.pcd", n);
+		tmpcloud->width = (int) tmpcloud->points.size();
+		tmpcloud->height = 1;
+		pcl::io::savePCDFileASCII (pcdname, *tmpcloud);
 /*
 		char pcdname[256];
 		cloud->width = (int) cloud->points.size();
@@ -775,7 +781,11 @@ int main()
 		cloud_->height = 1;
 		sprintf(pcdname, "png/3dReconstrcution%d.pcd", n);
 		pcl::io::savePCDFileASCII (pcdname, *cloud);
+		sprintf(pcdname, "png/3dBeforeSemantic%d.pcd", n);
+		pcl::io::savePCDFileASCII (pcdname, *tmpcloud);
 		sprintf(pcdname, "png/3dSemanrtic%d.pcd", n);
+		pcl::io::savePCDFileASCII (pcdname, *cloud_anno);
+		sprintf(pcdname, "png/3dSemanrticRemoveMoving%d.pcd", n);
 		pcl::io::savePCDFileASCII (pcdname, *cloud_);
 
 		char savepic[256];
@@ -785,14 +795,12 @@ int main()
 		cv::imwrite(savepic, disp_show_sgbm);
 		sprintf(savepic, "png/segnet%d.bmp", n);
 		cv::imwrite(savepic, segnet);
-		sprintf(savepic, "png/refine%d.bmp", n);
+		sprintf(savepic, "png/refineSegnet%d.bmp", n);
 		cv::imwrite(savepic, img);
-		sprintf(savepic, "png/refinemovingsemantic%d.bmp", n);
-		cv::imwrite(savepic, img_moving);
-		sprintf(savepic, "png/before_moving%d.bmp", n);
-		cv::imwrite(savepic, key_moving_mask_before);
-		sprintf(savepic, "png/refine_moving%d.bmp", n);
+		sprintf(savepic, "png/key_moving%d.bmp", n);
 		cv::imwrite(savepic, key_moving_mask);
+		sprintf(savepic, "png/gt%d.bmp", n);
+		cv::imwrite(savepic, crop_gt);
 */
 		//std::cout << BOLDYELLOW"Pointcloud: " << pointCloudNum << RESET"" << std::endl;
 	}
