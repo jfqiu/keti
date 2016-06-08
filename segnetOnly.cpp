@@ -9,7 +9,7 @@
 #include <thread>
 
 #include "segnet.hpp"
-
+/*
 int main(int argc, char** argv) 
 {
 	// Load network
@@ -99,5 +99,44 @@ int main(int argc, char** argv)
 
 	return 0;
 }
+*/
+int main(int argc, char** argv) 
+{
+	// Load network
+	string model_file = "/home/inin/SegNet/caffe-segnet/examples/segnet/models/segnet_model_driving_webdemo.prototxt";
+	string trained_file = "/home/inin/SegNet/caffe-segnet/examples/segnet/models/segnet_weights_driving_webdemo.caffemodel";
+	string label_file = "/home/inin/SegNet/caffe-segnet/examples/segnet/semantic12.txt";
+	string colorfile = "/home/inin/SegNet/caffe-segnet/examples/segnet/color.png";
+	Classifier classifier;
+
+	// Load image
+	cv::Mat img = cv::imread("/home/inin/L_755.png", 1);
+	cv::Mat color = cv::imread(colorfile, 1);
+	cv::Mat resizeImg;
+	cv::resize(img, resizeImg, Size(480,360));
+
+	// Prediction
+	std::vector<Prediction> predictions = classifier.Classify(resizeImg);
 
 
+	// Display segnet
+	cv::Mat segnet(resizeImg.size(), CV_8UC3, Scalar(0,0,0));
+	for (int i = 0; i < resizeImg.rows; ++i)
+	{	
+		uchar* segnet_ptr = segnet.ptr<uchar>(i);
+		for (int j = 0; j < resizeImg.cols; ++j)
+		{
+			segnet_ptr[j*3+0] = predictions[i*resizeImg.cols+j].second;
+			segnet_ptr[j*3+1] = predictions[i*resizeImg.cols+j].second;
+			segnet_ptr[j*3+2] = predictions[i*resizeImg.cols+j].second;
+		}
+	}
+	cv::LUT(segnet, color, segnet);
+
+	cv::resize(segnet, segnet, Size(img.cols,img.rows));
+	imshow("img",segnet);
+	imwrite("segnet.png", segnet);
+	waitKey(0);
+
+	return 0;
+}
