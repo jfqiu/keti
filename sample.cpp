@@ -58,7 +58,8 @@ int main()
 	double duration;
 	gettimeofday(&t_start, NULL);    
 
-	double positive = 0;
+	double mean_positive = 0;
+	double mean_IOU = 0;
 	int num = 0;
 	for (int n = 0; n < 200; n++)
 	{
@@ -401,9 +402,11 @@ int main()
 			}
 		}
 		double IOU = tp/(tp+fp+fn);
+		double positive = tp/(tp+fp);
 		if (IOU > 0)
 		{
-			positive += IOU;
+			mean_positive += positive;
+			mean_IOU += IOU;
 			num ++;
 		}
 		else continue;
@@ -418,42 +421,7 @@ int main()
 		cv::imshow("color_semantic", color_semantic);
 		cv::imshow("potential_semantic_motion_result_masks", potential_semantic_motion_result_masks);
 		cv::waitKey(1);
-/*
-		char pcdname[256];
-		sprintf(pcdname, "png/3dBeforeSemantic%d.pcd", n);
-		tmpcloud->width = (int) tmpcloud->points.size();
-		tmpcloud->height = 1;
-		pcl::io::savePCDFileASCII (pcdname, *tmpcloud);
-
-		char pcdname[256];
-		cloud->width = (int) cloud->points.size();
-		cloud->height = 1;
-		cloud_->width = (int) cloud_->points.size();
-		cloud_->height = 1;
-		sprintf(pcdname, "png/3dReconstrcution%d.pcd", n);
-		pcl::io::savePCDFileASCII (pcdname, *cloud);
-		sprintf(pcdname, "png/3dBeforeSemantic%d.pcd", n);
-		pcl::io::savePCDFileASCII (pcdname, *tmpcloud);
-		sprintf(pcdname, "png/3dSemanrtic%d.pcd", n);
-		pcl::io::savePCDFileASCII (pcdname, *cloud_anno);
-		sprintf(pcdname, "png/3dSemanrticRemoveMoving%d.pcd", n);
-		pcl::io::savePCDFileASCII (pcdname, *cloud_);
-
-		char savepic[256];
-		sprintf(savepic, "png/rgb%d.bmp", n);
-		cv::imwrite(savepic, img_rgb);
-		sprintf(savepic, "png/disparity%d.bmp", n);
-		cv::imwrite(savepic, disp_show_sgbm);
-		sprintf(savepic, "png/segnet%d.bmp", n);
-		cv::imwrite(savepic, segnet);
-		sprintf(savepic, "png/refineSegnet%d.bmp", n);
-		cv::imwrite(savepic, img);
-		sprintf(savepic, "png/key_moving%d.bmp", n);
-		cv::imwrite(savepic, key_moving_mask);
-		sprintf(savepic, "png/gt%d.bmp", n);
-		cv::imwrite(savepic, crop_gt);
-*/
-		//std::cout << BOLDYELLOW"Pointcloud: " << pointCloudNum << RESET"" << std::endl;
+		
 	}
  
 	//time elapse
@@ -461,7 +429,9 @@ int main()
 	seconds  = t_end.tv_sec  - t_start.tv_sec;
 	useconds = t_end.tv_usec - t_start.tv_usec;
 	duration = seconds*1000.0 + useconds/1000.0;
-	std::cout << BOLDMAGENTA"Average time: " << duration/200 << " ms  " << positive/num << RESET" " << std::endl;
+	std::cout << BOLDRED"Positive: " << mean_positive/num << RESET" " << std::endl;
+	std::cout << BOLDGREEN"IOU: " << mean_IOU/num << RESET" " << std::endl;
+	std::cout << BOLDMAGENTA"Average time: " << duration/200 << " ms " << RESET" " << std::endl;
 
 	return 0;
 }
