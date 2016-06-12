@@ -21,8 +21,8 @@ int cropRows = 360;
 int cropCols = 480;
 int cropCols2 = 960;
 
-string rgb_dirL = "/media/inin/data/tracking dataset/testing/image_02/0002/"; //tt0006 tr0013 tt0011 tt0003  tr0009 173-213
-string rgb_dirR = "/media/inin/data/tracking dataset/testing/image_03/0002/";
+string rgb_dirL = "/media/inin/data/tracking dataset/training/image_02/0010/"; //tt0006 tr0013 tt0011 tt0003  tr0009 173-213
+string rgb_dirR = "/media/inin/data/tracking dataset/training/image_03/0010/";
 //data directory
 //string rgb_dirL = "/media/inin/data/sequences/07/image_2/";
 //string rgb_dirR = "/media/inin/data/sequences/07/image_3/";
