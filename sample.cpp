@@ -352,7 +352,7 @@ int main()
 			continue;
 		}
 
-		// Preparation color_semantic(semantic) -- motion_test_crop(motion) -- img_rgb_crop(rgb)
+		// Preparation color_semantic(semantic) -- potential_semantic_motion_result_masks(motion) -- img_rgb_crop(rgb)
 		cv::Mat color_semantic(img.size(), CV_8UC3, cv::Scalar(0,0,0));
 		for (int i = 0; i < img.rows; i++)
 		{
@@ -400,9 +400,14 @@ int main()
 				}
 			}
 		}
-		positive += tp/(tp+fp+fn);
-		num ++;
-		printf("Precision: %f\n", tp/(tp+fp+fn));
+		double IOU = tp/(tp+fp+fn);
+		if (IOU > 0)
+		{
+			positive += IOU;
+			num ++;
+		}
+		else continue;
+		printf("IOU: %f\n", IOU);
 
 		cv::imshow("img_rgb_crop", img_rgb_crop);
 		cv::imshow("segnet", segnet);
