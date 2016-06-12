@@ -30,6 +30,9 @@ float  default_leaf_size = 0.02; //0.05f 0.03f is also valid
 double default_feature_threshold = 5.0; //5.0
 double default_normal_radius_search = 0.5; //0.03
 
+
+/*************** 413.94 ms ***************/
+
 int main() 
 {
 	//set visual odometry parameters
@@ -55,6 +58,8 @@ int main()
 	double duration;
 	gettimeofday(&t_start, NULL);    
 
+	double positive = 0;
+	int num = 0;
 	for (int n = 0; n < 200; n++)
 	{
 		//variables
@@ -325,7 +330,7 @@ int main()
 					}
 				}
 				double overlay_portion = overlay_count * 1.0f / mask_count;
-				std::cout << "area_portion_" << i << ": " << overlay_portion << "  area: " << cv::contourArea(contours[i]) << std::endl;
+				//std::cout << "area_portion_" << i << ": " << overlay_portion << "  area: " << cv::contourArea(contours[i]) << std::endl;
 				if (overlay_portion > overlay_portion_thres)
 				{
 					semantic_motion_result_masks.push_back(semantic_potential_mask);
@@ -335,7 +340,7 @@ int main()
 		cv::Mat potential_semantic_motion_result_masks = cv::Mat::zeros(img.size(), img.type());
 		if (semantic_motion_result_masks.size() > 0)	
 		{
-			printf("There are %ld potential semantic masks.\n", semantic_motion_result_masks.size());
+			//printf("There are %ld potential semantic masks.\n", semantic_motion_result_masks.size());
 			for (int i = 0; i < semantic_motion_result_masks.size(); i++)
 			{
 				potential_semantic_motion_result_masks += semantic_motion_result_masks[i];
@@ -343,7 +348,7 @@ int main()
 		}
 		else 
 		{
-			printf("There are no potential semantic masks.\n");
+			//printf("There are no potential semantic masks.\n");
 			continue;
 		}
 
@@ -368,6 +373,36 @@ int main()
 		// 2d crf refine (use semantic image to refine motion image)
 
 
+		// evaluation
+		double tp = 0;
+		double tn = 0;
+		double fp = 0;
+		double fn = 0;
+		for (int i = 0; i < motion_gt_crop.rows; i++)
+		{
+			uchar* gt_ptr = motion_gt_crop.ptr<uchar>(i);
+			uchar* result_ptr = potential_semantic_motion_result_masks.ptr<uchar>(i);
+			for (int j = 0; j < motion_gt_crop.cols; j++)
+			{
+				if (gt_ptr[j] == 255)
+				{
+					if (result_ptr[j*3] == 255)
+						tp ++;
+					else
+						fn ++;
+				}
+				else
+				{
+					if (result_ptr[j*3] == 0)
+						tn ++;
+					else
+						fp ++;
+				}
+			}
+		}
+		positive += tp/(tp+fp+fn);
+		num ++;
+		printf("Precision: %f\n", tp/(tp+fp+fn));
 
 		cv::imshow("img_rgb_crop", img_rgb_crop);
 		cv::imshow("segnet", segnet);
@@ -377,7 +412,7 @@ int main()
 		cv::imshow("motion_gt_crop", motion_gt_crop);
 		cv::imshow("color_semantic", color_semantic);
 		cv::imshow("potential_semantic_motion_result_masks", potential_semantic_motion_result_masks);
-		cv::waitKey(0);
+		cv::waitKey(1);
 /*
 		char pcdname[256];
 		sprintf(pcdname, "png/3dBeforeSemantic%d.pcd", n);
@@ -421,7 +456,7 @@ int main()
 	seconds  = t_end.tv_sec  - t_start.tv_sec;
 	useconds = t_end.tv_usec - t_start.tv_usec;
 	duration = seconds*1000.0 + useconds/1000.0;
-	std::cout << BOLDMAGENTA"Average time: " << duration/200 << " ms" << RESET" " << std::endl;
+	std::cout << BOLDMAGENTA"Average time: " << duration/200 << " ms  " << positive/num << RESET" " << std::endl;
 
 	return 0;
 }
